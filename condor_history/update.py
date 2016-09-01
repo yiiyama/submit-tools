@@ -19,26 +19,40 @@ logging.basicConfig()
 
 from db import db_query
 
+schedd = htcondor.Schedd()
+
+# first save the list of cluster ids that are still in the queue
+current_open_clusters = set()
+
+for jobads in schedd.xquery('True', ['ClusterId']):
+    current_open_clusters.add(jobads['ClusterId'])
+
+# prepare python -> mysql id mappings
 users = dict(db_query('SELECT `name`, `user_id` FROM `users`'))
 sites = {}
 for site_id, site_name, site_pool in db_query('SELECT `site_id`, `site_name`, `site_pool` FROM `sites`'):
     sites[(site_name, site_pool)] = site_id
+
+# form the constraint expression for condor_history:
+# 1. All new clusters
+# 2. All clusters tagged open in the last iteration
 
 last_cluster_id = db_query('SELECT MAX(`cluster_id`) FROM `job_clusters` WHERE `instance` = %s', CONDOR_INSTANCE)[0]
 
 if last_cluster_id is None:
     last_cluster_id = 0
 
-last_cluster_id = 0
+constraint = classad.ExprTree('ClusterId > %d' % last_cluster_id)
+for cluster_id in db_query('SELECT `cluster_id` FROM `open_clusters`'):
+    constraint = constraint or classad.ExprTree('ClusterId == %d' % cluster_id)
 
-schedd = htcondor.Schedd()
-
+# some efficiency measures
 new_cluster_ids = set()
 is_nobody = set()
 
 classad_attrs = ['GlobalJobId', 'ClusterId', 'ProcId', 'User', 'Cmd', 'MATCH_GLIDEIN_SiteWMS_Queue', 'LastRemoteHost', 'MATCH_GLIDEIN_SiteWMS_Slot', 'MATCH_GLIDEIN_Site', 'LastMatchTime', 'RemoteWallClockTime', 'RemoteUserCpu', 'JobStatus']
 
-for jobads in schedd.history(classad.ExprTree('ClusterId >= %d' % last_cluster_id), classad_attrs, -1):
+for jobads in schedd.history(constraint, classad_attrs, -1):
     try:
         match_time = time.gmtime(jobads['LastMatchTime'])
     except KeyError:
@@ -137,3 +151,8 @@ for jobads in schedd.history(classad.ExprTree('ClusterId >= %d' % last_cluster_i
                  success,
                  cpu_time,
                  wall_time)
+
+# save currently open clusters
+db_query('TRUNCATE TABLE `open_clusters`')
+if len(current_open_clusters) != 0:
+    db_query('INSERT INTO `open_clusters` VALUES %s' % (','.join(['(%d)' % cluster_id for cluster_id in current_open_clusters])))
