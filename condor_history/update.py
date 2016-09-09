@@ -30,6 +30,7 @@ users = dict(db_query('SELECT `name`, `user_id` FROM `users`'))
 sites = {}
 for site_id, site_name, site_pool in db_query('SELECT `site_id`, `site_name`, `site_pool` FROM `sites`'):
     sites[(site_name, site_pool)] = site_id
+frontends = dict(db_query('SELECT `frontend_name`, `frontend_id` FROM `frontends` WHERE `frontend_name`'))
 
 # Form the constraint expression for condor_history:
 # 1. All new clusters
@@ -50,7 +51,7 @@ for cluster_id in open_clusters:
 cluster_jobs = dict()
 is_nobody = set()
 
-classad_attrs = ['GlobalJobId', 'ClusterId', 'ProcId', 'User', 'Cmd', 'MATCH_GLIDEIN_SiteWMS_Queue', 'LastRemoteHost', 'MATCH_GLIDEIN_SiteWMS_Slot', 'MATCH_GLIDEIN_Site', 'LastMatchTime', 'RemoteWallClockTime', 'RemoteUserCpu', 'ExitCode', 'JobStatus']
+classad_attrs = ['GlobalJobId', 'ClusterId', 'ProcId', 'User', 'Cmd', 'MATCH_GLIDEIN_SiteWMS_Queue', 'LastRemoteHost', 'MATCH_GLIDEIN_SiteWMS_Slot', 'MATCH_GLIDEIN_Site', 'LastRemotePool', 'LastMatchTime', 'RemoteWallClockTime', 'RemoteUserCpu', 'ExitCode', 'JobStatus']
 
 for jobads in schedd.history(constraint, classad_attrs, -1):
     try:
@@ -122,7 +123,7 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
 
     if site_pool == 'Unknown':
         try:
-            remote_slot = str(jobads['LastRemoteHost'])
+            remote_slot = str(jobads['LastRemoteHost']).lower()
         except KeyError:
             try:
                 remote_slot = str(jobads['MATCH_GLIDEIN_SiteWMS_Slot'])
@@ -135,7 +136,17 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
     try:
         site_id = sites[(site_name, site_pool)]
     except KeyError:
-        site_id = db_query('INSERT INTO `sites` (`site_name`, `site_pool`) VALUES (%s, %s)', site_name, site_pool)
+        try:
+            frontend_name = str(jobads['LastRemotePool'])
+            try:
+                frontend_id = frontends[frontend_name]
+            except KeyError:
+                frontend_id = db_query('INSERT INTO `frontends` (`frontend_name`) VALUES (%s)', frontend_name)
+
+        except KeyError:
+            frontend_id = 0
+
+        site_id = db_query('INSERT INTO `sites` (`site_name`, `site_pool`, `frontend_id`) VALUES (%s, %s, %s)', site_name, site_pool, frontend_id)
         sites[(site_name, site_pool)] = site_id
 
     if jobads['JobStatus'] == 4:
