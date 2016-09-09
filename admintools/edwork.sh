@@ -70,7 +70,7 @@ then
   
   ln -s $TARGETFS/$USER /work/$USER
   
-  edquota -f $TARGETFS -p $QUOTATEMP
+  edquota -f $TARGETFS -p $QUOTATEMP $USER
 
 elif [ $ACTION = "del" ]
 then
