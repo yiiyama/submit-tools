@@ -1,0 +1,183 @@
+body {
+    font: 18px sans-serif;
+    font-weight: lighter;
+    color: black;
+}
+
+#header {
+    width: 94%;
+    height: 100px;
+    padding: 5px 1% 0 1%;
+    background-color: #888888;
+    margin-bottom: 15px;
+    color: white;
+}
+
+#main {
+    width: 100%;
+}
+
+#search {
+    width: 100%;
+    height: 400px;
+    border-bottom: 1px solid;
+}
+
+#clusterSearch {
+    width: 15%;
+    float: left;
+    height: 100%;
+    border-right: 1px dashed;
+}
+
+#clusterSelect {
+    width: 40%;
+    float: left;
+    height: 100%;
+    border-right: 1px dashed;
+    margin-left: 5px;
+}
+
+#jobSearch {
+    width: 35%;
+    float: left;
+    height: 100%;
+    margin-left: 5px;
+}
+
+#users {
+    width: 90%;
+    height: 200px;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    border: 1px solid #999999;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+}
+
+#cmds {
+    width: 90%;
+}
+
+table {
+    border-spacing: 0;
+    border: 1px solid #999999;
+    font-size: 12px;
+}
+
+table thead,
+table tbody {
+    display: block;
+    width: 100%;
+}
+
+table tbody {
+    border-top: 2px solid black;
+}
+
+table tr {
+    display: block;
+    width: 100%;
+    height: 40px;
+}
+
+table th,
+table td
+{
+    height: 40px;
+    border-right: 1px solid #999999;
+    padding: 0;
+}
+
+table th {
+    background-color: #a31f34;
+    color: white;
+}
+
+table th.sortable {
+    cursor: pointer;
+}
+
+table th:last-child,
+table td:last-child
+{
+    border-right: none;
+}
+
+table tr.odd {
+    background-color: #c2c0bf;
+}
+
+table td {
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+#clusterList {
+    width: 98%;
+}
+
+#clusterList tbody {
+    height: 300px;
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
+
+#jobView {
+    margin-top: 10px;
+    width: 100%;
+}
+
+#viewMode {
+    width: 100%;
+    height: 38px;
+    overflow: visible;
+}
+
+#viewMode .viewTab {
+    background-color: #cccccc;
+    width: 148px;
+    height: 20px;
+    float: left;
+    text-align: center;
+    text-decoration: underline;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    border-width: 2px 0 0 2px;
+    border-style: solid;
+    border-color: #999999;
+    margin-bottom: 2px;
+    cursor: pointer;
+}
+
+#viewMode div.selected {
+    background-color: white;
+    text-decoration: none;
+    padding-bottom: 10px;
+    margin-bottom: 0;
+    cursor: auto;
+}
+
+#viewMode div.last {
+    border-right: 2px solid #999999;
+}
+
+#jobGraphArea {
+    float: clear;
+    width: 100%;
+}
+
+#jobTableArea {
+    float: clear;
+    width: 100%;
+
+}
+
+#jobList {
+    width: 70%;
+}
+
+#jobList tbody {
+    text-align: right;
+}

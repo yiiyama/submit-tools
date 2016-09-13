@@ -2,31 +2,25 @@
 <html>
   <head>
     <title>subMIT job reports</title>
+    <link href="css/condor_history.css" rel="stylesheet">
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
     <script type="text/javascript" src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
     <script type="text/javascript" src="http://spin.js.org/spin.min.js"></script>
     <script type="text/javascript" src="js/condor_history.js"></script>
   </head>
   <body>
-    <header id="header"></header>
+    <header id="header">
+      <h1>subMIT Job Reports</h1></header>
     <main id="main">
       <section id="search">
         <div id="clusterSearch">
-          <div class="clusterSearchKey">User: <input type="text" size="20" id="users" onchange="findClustersWith('users')"></div>
-          <div class="clusterSearchKey">Command: <input type="text" size="20" id="cmds" onchange="findClustersWith('cmds')"></div>
+          <div class="clusterSearchKey">User: <div id="users"></div></div>
+          <div class="clusterSearchKey">Commands: <input type="text" id="cmds" onkeyup="findClusters()"></div>
         </div>
         <div id="clusterSelect">
           Clusters
           <table id="clusterList">
             <thead>
-              <tr>
-                <th><input type="checkbox" id="selectAll" onchange="toggleSelect()"></th>
-                <th>ClusterId</th>
-                <th>User</th>
-                <th>Cmd</th>
-                <th>Submit date</th>
-                <th>Jobs</th>
-              </tr>
             </thead>
             <tbody>
             </tbody>
@@ -43,24 +37,9 @@
         </div>
       </section>
       <section id="jobView">
-        <nav id="viewMode">
-          <div id="showGraphs">Graphs</div>
-          <div id="showTable">Table</div>
-        </nav>
-        <article id="jobGraphArea">
-        </article>
         <article id="jobTableArea">
-          <table id="jobTable">
+          <table id="jobList">
             <thead>
-              <tr>
-                <th>ClusterId</th>
-                <th>ProcId</th>
-                <th>Start time</th>
-                <th>Succeeded</th>
-                <th>CPU time (s)</th>
-                <th>Wallclock time (s)</th>
-                <th>Exit code</th>
-              </tr>
             </thead>
             <tbody>
             </tbody>
@@ -71,4 +50,7 @@
     <footer id="footer">
     </footer>
   </body>
+  <script type="text/javascript">
+    initPage();
+  </script>
 </html>
