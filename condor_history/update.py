@@ -29,7 +29,7 @@ current_open_clusters = set()
 for jobads in schedd.xquery('True', ['ClusterId']):
     current_open_clusters.add(jobads['ClusterId'])
 
-logger.info('Current open clusters: %s', ' '.join(current_open_clusters))
+logger.info('Current open clusters: %s', ' '.join('%d' % c for c in current_open_clusters))
 
 # Prepare python -> mysql id mappings
 users = dict(db_query('SELECT `name`, `user_id` FROM `users`'))
@@ -201,7 +201,7 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
              wall_time,
              exit_code)
 
-logger.info('Open clusters: %s', ' '.join(current_open_clusters))
+logger.info('Open clusters: %s', ' '.join('%d' % c for c in current_open_clusters))
 
 # save currently open clusters
 db_query('TRUNCATE TABLE `open_clusters`')
