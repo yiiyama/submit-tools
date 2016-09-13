@@ -7,6 +7,7 @@ update.py - Collect job information from schedd and save into database.
 # Increment this number whenever ClusterId counter is reset
 CONDOR_INSTANCE = 1
 
+import sys
 import os
 import pwd
 import time
@@ -16,7 +17,7 @@ import logging
 import htcondor
 import classad
 
-logging.basicConfig()
+logging.basicConfig(level = logging.INFO)
 logger = logging.getLogger(__name__)
 
 from db import db_query
@@ -28,8 +29,6 @@ current_open_clusters = set()
 
 for jobads in schedd.xquery('True', ['ClusterId']):
     current_open_clusters.add(jobads['ClusterId'])
-
-logger.info('Current open clusters: %s', ' '.join('%d' % c for c in current_open_clusters))
 
 # Prepare python -> mysql id mappings
 users = dict(db_query('SELECT `name`, `user_id` FROM `users`'))
@@ -47,11 +46,16 @@ last_cluster_id = db_query('SELECT MAX(`cluster_id`) FROM `job_clusters` WHERE `
 if last_cluster_id is None:
     last_cluster_id = 0
 
+logger.info('Last known cluster ID: %d', last_cluster_id)
+
 open_clusters = set(db_query('SELECT `cluster_id` FROM `open_clusters`'))
 
-constraint = classad.ExprTree('ClusterId > %d' % last_cluster_id)
+# ExprTree override of __or__ is buggy; need to concatenate by hand
+constraints = ['ClusterId > %d' % last_cluster_id]
 for cluster_id in open_clusters:
-    constraint = constraint or classad.ExprTree('ClusterId == %d' % cluster_id)
+    constraints.append('ClusterId == %d' % cluster_id)
+
+constraint = classad.ExprTree('||'.join(constraints))
 
 # Some efficiency measures
 cluster_jobs = dict()
@@ -158,6 +162,7 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
                 logger.info('Inserting frontend %s', frontend_name)
 
                 frontend_id = db_query('INSERT INTO `frontends` (`frontend_name`) VALUES (%s)', frontend_name)
+                frontends[frontend_name] = frontend_id
 
         except KeyError:
             frontend_name = 'Unknown'
@@ -201,9 +206,9 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
              wall_time,
              exit_code)
 
-logger.info('Open clusters: %s', ' '.join('%d' % c for c in current_open_clusters))
-
 # save currently open clusters
+logger.info('Current open clusters: %s', ' '.join('%d' % c for c in current_open_clusters))
+
 db_query('TRUNCATE TABLE `open_clusters`')
 if len(current_open_clusters) != 0:
     db_query('INSERT INTO `open_clusters` VALUES %s' % (','.join(['(%d)' % cluster_id for cluster_id in current_open_clusters])))
