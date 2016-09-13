@@ -12,8 +12,12 @@ import pwd
 import time
 import subprocess
 import collections
+import logging
 import htcondor
 import classad
+
+logging.basicConfig()
+logger = logging.getLogger(__name__)
 
 from db import db_query
 
@@ -24,6 +28,8 @@ current_open_clusters = set()
 
 for jobads in schedd.xquery('True', ['ClusterId']):
     current_open_clusters.add(jobads['ClusterId'])
+
+logger.info('Current open clusters: %s', ' '.join(current_open_clusters))
 
 # Prepare python -> mysql id mappings
 users = dict(db_query('SELECT `name`, `user_id` FROM `users`'))
@@ -54,6 +60,8 @@ is_nobody = set()
 classad_attrs = ['GlobalJobId', 'ClusterId', 'ProcId', 'User', 'Cmd', 'MATCH_GLIDEIN_SiteWMS_Queue', 'LastRemoteHost', 'MATCH_GLIDEIN_SiteWMS_Slot', 'MATCH_GLIDEIN_Site', 'LastRemotePool', 'LastMatchTime', 'RemoteWallClockTime', 'RemoteUserCpu', 'ExitCode', 'JobStatus']
 
 for jobads in schedd.history(constraint, classad_attrs, -1):
+    logger.info(str(jobads))
+
     try:
         match_time = time.gmtime(jobads['LastMatchTime'])
     except KeyError:
@@ -85,12 +93,16 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
                 except KeyError:
                     # User unknown to database
                     try:
+                        logger.info('Inserting user %s(%d)', user, user_id)
+
                         user_id = pwd.getpwnam(user).pw_uid
                         db_query('INSERT INTO `users` VALUES (%s, %s)', user_id, user)
                         users[user] = user_id
     
                     except KeyError:
                         # User unknown to system password database
+                        logger.warning('Unknown user %s', user)
+
                         is_nobody.add(user)
                         user_id = 0
     
@@ -98,6 +110,8 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
             # but we are not interested in seconds-precision here; is a good enough approximation
             global_jobid = jobads['GlobalJobId']
             submit_time = time.gmtime(int(global_jobid[global_jobid.rfind('#') + 1:]))
+
+            logger.info('Inserting cluster (%d, %s, %s, %s)', cluster_id, user, time.strftime('%Y-%m-%d %H:%M:%S', submit_time), os.path.basename(jobads['Cmd'])[:16])
     
             # Now insert the cluster information
             db_query('INSERT INTO `job_clusters` VALUES (%s, %s, %s, %s, %s)', CONDOR_INSTANCE, cluster_id, user_id, time.strftime('%Y-%m-%d %H:%M:%S', submit_time), os.path.basename(jobads['Cmd'])[:16])
@@ -141,10 +155,15 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
             try:
                 frontend_id = frontends[frontend_name]
             except KeyError:
+                logger.info('Inserting frontend %s', frontend_name)
+
                 frontend_id = db_query('INSERT INTO `frontends` (`frontend_name`) VALUES (%s)', frontend_name)
 
         except KeyError:
+            frontend_name = 'Unknown'
             frontend_id = 0
+
+        logger.info('Inserting site %s/%s (frontend %s)', site_name, site_pool, frontend_name)
 
         site_id = db_query('INSERT INTO `sites` (`site_name`, `site_pool`, `frontend_id`) VALUES (%s, %s, %s)', site_name, site_pool, frontend_id)
         sites[(site_name, site_pool)] = site_id
@@ -168,6 +187,8 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
         wall_time = jobads['RemoteWallClockTime']
     except KeyError:
         wall_time = -1
+
+    logger.info('Inserting job %d.%d (success: %d)', cluster_id, proc_id, success)
     
     db_query('INSERT INTO `jobs` VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
              CONDOR_INSTANCE,
@@ -179,6 +200,8 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
              cpu_time,
              wall_time,
              exit_code)
+
+logger.info('Open clusters: %s', ' '.join(current_open_clusters))
 
 # save currently open clusters
 db_query('TRUNCATE TABLE `open_clusters`')
