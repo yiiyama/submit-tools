@@ -38,6 +38,10 @@ body {
     margin-left: 5px;
 }
 
+div.clusterSearchKey {
+    margin-bottom: 10px;
+}
+
 #jobSearch {
     width: 35%;
     float: left;
@@ -45,9 +49,7 @@ body {
     margin-left: 5px;
 }
 
-#users {
-    width: 90%;
-    height: 200px;
+div.selectMenu {
     overflow-x: hidden;
     overflow-y: scroll;
     border: 1px solid #999999;
@@ -56,62 +58,89 @@ body {
     margin-bottom: 5px;
 }
 
+#users {
+    width: 90%;
+}
+
 #cmds {
     width: 90%;
 }
 
-table {
-    border-spacing: 0;
-    border: 1px solid #999999;
-    font-size: 12px;
+#clusterIds {
+    width: 90%;
 }
 
-table thead,
-table tbody {
+#dates {
+    width: 90%;
+    display: table;
+}
+
+#dates div.datesRow {
+    display: table-row;
+}
+
+#dates div.datesCol {
+    display: table-cell;
+}
+
+table.selector {
+    border-spacing: 0;
+    border: 1px solid #999999;
+    font-size: 16px;
+}
+
+table.selector thead,
+table.selector tbody {
     display: block;
     width: 100%;
 }
 
-table tbody {
+table.selector tbody {
     border-top: 2px solid black;
 }
 
-table tr {
+table.selector tr {
     display: block;
     width: 100%;
     height: 40px;
 }
 
-table th,
-table td
+table.selector tr.odd {
+    background-color: #c2c0bf;
+}
+
+table.selector th,
+table.selector td
 {
+    display: table-cell;
     height: 40px;
     border-right: 1px solid #999999;
-    padding: 0;
+    padding: 0 5px 0 5px;
 }
 
-table th {
-    background-color: #a31f34;
-    color: white;
-}
-
-table th.sortable {
-    cursor: pointer;
-}
-
-table th:last-child,
-table td:last-child
+table.selector th:last-child,
+table.selector td:last-child
 {
     border-right: none;
 }
 
-table tr.odd {
-    background-color: #c2c0bf;
+table.selector th {
+    background-color: #a31f34;
+    color: white;
+    font-size: 14px;
 }
 
-table td {
-    padding-left: 5px;
-    padding-right: 5px;
+table.selector th.sortable {
+    cursor: pointer;
+}
+
+table.selector td {
+    overflow: hidden;
+    word-wrap: break-word;
+}
+
+table.selector td.textcol {
+    text-align: center;
 }
 
 #clusterList {
@@ -119,9 +148,9 @@ table td {
 }
 
 #clusterList tbody {
-    height: 300px;
     overflow-x: hidden;
     overflow-y: scroll;
+    text-align: right;
 }
 
 #jobView {
@@ -175,9 +204,21 @@ table td {
 }
 
 #jobList {
-    width: 70%;
+    width: 90%;
 }
 
 #jobList tbody {
     text-align: right;
+}
+
+input.time {
+    width: 100px;
+}
+
+#sites {
+    width: 60%;
+}
+
+#exitcodes {
+    width: 20%;
 }

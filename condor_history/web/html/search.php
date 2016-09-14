@@ -1,5 +1,7 @@
 <?php
 
+date_default_timezone_set('America/New_York');
+
 if (!isset($_REQUEST['search']))
   exit(0);
 
@@ -24,6 +26,9 @@ if ($_REQUEST['search'] == 'users') {
 else if ($_REQUEST['search'] == 'clusters') {
   $users = $_REQUEST['users'];
   $cmds = $_REQUEST['cmds'];
+  $ids = $_REQUEST['ids'];
+  $begin = $_REQUEST['begin'];
+  $end = $_REQUEST['end'];
 
   if (count($users) == 0 && count($cmds) == 0) {
     echo json_encode($data);
@@ -36,7 +41,7 @@ else if ($_REQUEST['search'] == 'clusters') {
       $quoted_users[] = sprintf("'%s'", $db->real_escape_string($user));
   }
   else if ($users != "")
-    $quoted_users = array(sprintf("'%s'", $users));
+    $quoted_users = array(sprintf("'%s'", $db->real_escape_string($users)));
 
   if (is_array($cmds)) {
     $quoted_cmds = array();
@@ -46,7 +51,30 @@ else if ($_REQUEST['search'] == 'clusters') {
     }
   }
   else if ($cmds != "")
-    $quoted_cmds = array(sprintf("'%s'", $cmds));
+    $quoted_cmds = array(sprintf("'%s'", $db->real_escape_string($cmds)));
+
+  if (is_array($ids)) {
+    $quoted_ids = array();
+    foreach ($ids as $id) {
+      $s = '' . $id;
+      if (strlen($s) != 0)
+        $quoted_ids[] = sprintf("%s", $db->real_escape_string('' . $s));
+    }
+  }
+  else if ('' . $ids != '')
+    $quoted_ids = array(sprintf("%s", $db->real_escape_string('' . $s)));
+
+  $tm = strptime($begin, '%Y/%m/%d');
+  if ($tm !== false)
+    $begin_ts = mktime(0, 0, 0, $tm['tm_mon'] + 1, $tm['tm_mday'], $tm['tm_year'] + 1900);
+  else
+    $begin_ts = 0;
+
+  $tm = strptime($end, '%Y/%m/%d');
+  if ($tm !== false)
+    $end_ts = mktime(0, 0, 0, $tm['tm_mon'] + 1, $tm['tm_mday'], $tm['tm_year'] + 1900) + 3600 * 24;
+  else
+    $end_ts = 0;
 
   $query = 'SELECT c.`cluster_id`, u.`name`, c.`cmd`, c.`submit_time`, COUNT(j.`proc_id`)';
   $query .= ' FROM `job_clusters` AS c';
@@ -57,6 +85,12 @@ else if ($_REQUEST['search'] == 'clusters') {
     $query .= sprintf(' AND u.`name` IN (%s)', implode(',', $quoted_users));
   if (count($quoted_cmds) != 0)
     $query .= sprintf(' AND c.`cmd` IN (%s)', implode(',', $quoted_cmds));
+  if (count($quoted_ids) != 0)
+    $query .= sprintf(' AND c.`cluster_id` IN (%s)', implode(',', $quoted_ids));
+  if ($begin_ts != 0)
+    $query .= sprintf(' AND UNIX_TIMESTAMP(c.`submit_time`) >= %d', $begin_ts);
+  if ($end_ts != 0)
+    $query .= sprintf(' AND UNIX_TIMESTAMP(c.`submit_time`) <= %d', $end_ts);
   $query .= ' GROUP BY c.`cluster_id`';
 
   $stmt = $db->prepare($query);
@@ -68,28 +102,56 @@ else if ($_REQUEST['search'] == 'clusters') {
 }
 else if ($_REQUEST['search'] == 'jobs') {
   $cluster_ids = $_REQUEST['clusterIds'];
+  $walltime_min = 0 + $_REQUEST['wallTimeMin'];
+  $walltime_max = 0 + $_REQUEST['wallTimeMax'];
+  $cputime_min = 0 + $_REQUEST['cpuTimeMin'];
+  $cputime_max = 0 + $_REQUEST['cpuTimeMax'];
 
-  $query = 'SELECT c.`cluster_id`, j.`proc_id`, u.`name`, c.`cmd`, j.`match_time`, IF(j.`success`, \'Yes\', \'No\'), j.`cputime`, j.`walltime`, j.`exitcode`';
+  $data['jobs'] = array();
+  $data['sites'] = array();
+  $data['exitcodes'] = array();
+
+  $query = 'SELECT c.`cluster_id`, j.`proc_id`, u.`name`, c.`cmd`, j.`match_time`, f.`frontend_alias`, CONCAT_WS(\'/\', s.`site_name`, s.`site_pool`), IF(j.`success`, \'Yes\', \'No\'), j.`cputime`, j.`walltime`, j.`exitcode`';
   $query .= ' FROM `jobs` AS j';
   $query .= ' INNER JOIN `job_clusters` AS c ON (c.`instance`, c.`cluster_id`) = (j.`instance`, j.`cluster_id`)';
   $query .= ' INNER JOIN `users` AS u ON u.`user_id` = c.`user_id`';
+  $query .= ' LEFT JOIN `sites` AS s ON s.`site_id` = j.`site_id`';
+  $query .= ' LEFT JOIN `frontends` AS f ON f.`frontend_id` = s.`frontend_id`';
   $query .= sprintf(' WHERE c.`instance` = %d', $instance);
   $query .= sprintf(' AND c.`cluster_id` IN (%s)', implode(',', $cluster_ids));
+  if ($walltime_min > 0)
+    $query .= sprintf(' AND j.`walltime` >= %d', $walltime_min);
+  if ($walltime_max > 0)
+    $query .= sprintf(' AND j.`walltime` <= %d', $walltime_max);
+  if ($cputime_min > 0)
+    $query .= sprintf(' AND j.`cputime` >= %d', $cputime_min);
+  if ($cputime_max > 0)
+    $query .= sprintf(' AND j.`cputime` <= %d', $cputime_max);
 
   $stmt = $db->prepare($query);
-  $stmt->bind_result($cid, $pid, $user, $cmd, $match_time, $success, $cputime, $walltime, $exitcode);
+  $stmt->bind_result($cid, $pid, $user, $cmd, $match_time, $frontend, $site, $success, $cputime, $walltime, $exitcode);
   $stmt->execute();
-  while ($stmt->fetch())
-    $data[] = array("cid" => $cid,
-                    "pid" => $pid,
-                    "user" => $user,
-                    "cmd" => $cmd,
-                    "matchTime" => $match_time,
-                    "success" => $success,
-                    "cputime" => $cputime,
-                    "walltime" => $walltime,
-                    "exitcode" => $exitcode);
+  while ($stmt->fetch()) {
+    $data['jobs'][] = array("cid" => $cid,
+                            "pid" => $pid,
+                            "user" => $user,
+                            "cmd" => $cmd,
+                            "matchTime" => $match_time,
+                            "frontend" => $frontend,
+                            "site" => $site,
+                            "success" => $success,
+                            "cputime" => $cputime,
+                            "walltime" => $walltime,
+                            "exitcode" => $exitcode);
+    if (!in_array($site, $data['sites']))
+      $data['sites'][] = $site;
+    if (!in_array($exitcode, $data['exitcodes']))
+      $data['exitcodes'][] = $exitcode;
+  }
   $stmt->close();
+
+  sort($data['sites']);
+  sort($data['exitcodes']);
 }
 
 echo json_encode($data);

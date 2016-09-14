@@ -3,7 +3,9 @@
   <head>
     <title>subMIT job reports</title>
     <link href="css/condor_history.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.0/themes/smoothness/jquery-ui.css">
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.0/jquery-ui.min.js"></script>
     <script type="text/javascript" src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
     <script type="text/javascript" src="http://spin.js.org/spin.min.js"></script>
     <script type="text/javascript" src="js/condor_history.js"></script>
@@ -14,12 +16,24 @@
     <main id="main">
       <section id="search">
         <div id="clusterSearch">
-          <div class="clusterSearchKey">User: <div id="users"></div></div>
-          <div class="clusterSearchKey">Commands: <input type="text" id="cmds" onkeyup="findClusters()"></div>
+          <div class="clusterSearchKey">User: <div id="users" class="selectMenu"></div></div>
+          <div class="clusterSearchKey">Commands: <br><input type="text" id="cmds" onkeyup="findClusters()" onchange="findClusters()"></div>
+          <div class="clusterSearchKey">ClusterIds: <br><input type="text" id="clusterIds" onkeyup="findClusters()" onchange="findClusters()"></div>
+          <div class="clusterSearchKey">Submit date:
+            <div id="dates">
+              <div class="datesRow">
+                <div class="datesCol">From</div>
+                <div class="datesCol"><input type="text" id="submitBegin" onchange="findClusters()" onkeyup="findClusters()"></div>
+              </div>
+              <div class="datesRow">
+                <div class="datesCol">Till</div>
+                <div class="datesCol"><input type="text" id="submitEnd" onchange="findClusters()" onkeyup="findClusters()"></div>
+              </div>
+            </div>
+          </div>
         </div>
         <div id="clusterSelect">
-          Clusters
-          <table id="clusterList">
+          <table class="selector" id="clusterList">
             <thead>
             </thead>
             <tbody>
@@ -28,17 +42,25 @@
           </div>
         </div>
         <div id="jobSearch">
-          <div class="jobSearchKey">Wall Time: </div>
-          <div class="jobSearchKey">CPU Time: </div>
-          <div class="jobSearchKey">Site: <select id="sites" multiple="multiple"></select></div>
-          <div class="jobSearchKey">Succeeded: <select id="succeeded"><option value=""></option><option value="1">Yes</option><option value="0">No</option></select></div>
-          <div class="jobSearchKey">Exit Code: <select id="exitCode" multiple="multiple"></select></div>
-          <input type="button" value="Show" onclick="loadJobs()">
+          <div class="jobSearchKey">Wall Time: <br>
+            <input type="text" class="time" id="wallTimeMin" onkeyup="loadJobs()" onchange="loadJobs()"> s - <input type="text" class="time" id="wallTimeMax" onkeyup="loadJobs()" onchange="loadJobs()"> s
+          </div>
+          <div class="jobSearchKey">CPU Time: <br>
+            <input type="text" class="time" id="cpuTimeMin" onkeyup="loadJobs()" onchange="loadJobs()"> s - <input type="text" class="time" id="cpuTimeMax" onkeyup="loadJobs()" onchange="loadJobs()"> s
+          </div>
+          <div class="jobSearchKey">Site:
+            <div id="sites" class="selectMenu"></div>
+          </div>
+          <div class="jobSearchKey">Succeeded: <br>
+            <select id="succeeded" onchange="narrowJobs()"><option value=""></option><option value="Yes">Yes</option><option value="No">No</option></select></div>
+          <div class="jobSearchKey">Exit Code:
+            <div id="exitcodes" class="selectMenu"></div>
+          </div>
         </div>
       </section>
       <section id="jobView">
         <article id="jobTableArea">
-          <table id="jobList">
+          <table class="selector" id="jobList">
             <thead>
             </thead>
             <tbody>

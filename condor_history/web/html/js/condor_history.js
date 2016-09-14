@@ -1,5 +1,11 @@
+var clusterListHeadWidths = [0.05, 0.15, 0.15, 0.25, 0.25, 0.15];
+var clusterListBodyWidths = [0.05, 0.15, 0.15, 0.25, 0.25];
+var jobListWidths = [0.05, 0.05, 0.05, 0.1, 0.1, 0.15, 0.2, 0.05, 0.1, 0.1, 0.05];
+
 function initPage()
 {
+    // Get users
+
     var inputData = {
         'search': 'users'
     };
@@ -8,14 +14,26 @@ function initPage()
             displayUsers(data);
         }, 'json');
 
+    // Set up date picker
+
+    $.datepicker.setDefaults({'dateFormat': 'yy/mm/dd'});
+
+    var begin = $('#submitBegin');
+    begin.datepicker({'defaultDate': -1});
+    begin.datepicker('setDate', -1);
+    begin.val($.datepicker.formatDate('yy/mm/dd', begin.datepicker('getDate')));
+    var end = $('#submitEnd');
+    end.datepicker({'defaultDate': new Date()});
+    end.datepicker('setDate', new Date());
+    end.val($.datepicker.formatDate('yy/mm/dd', end.datepicker('getDate')));
+
+    // Set up tables
+
     var table = d3.select('#clusterList')
         .style('height', '42px');
 
-    var tableNode = table.node();
-
     var headRow = table.select('thead').append('tr');
     headRow.append('th')
-        .style('width', (tableNode.clientWidth * 0.05 - 1) + 'px')
         .append('input')
         .attr({'type': 'checkbox', 'id': 'selectAllClusters'})
         .on('change', function () {
@@ -24,55 +42,35 @@ function initPage()
                 loadJobs();
             });
 
-    headRow.append('th')
-        .style('width', (tableNode.clientWidth * 0.15 - 1) + 'px')
-        .text('ClusterId');
-    headRow.append('th')
-        .style('width', (tableNode.clientWidth * 0.15 - 1) + 'px')
-        .text('User');
-    headRow.append('th')
-        .style('width', (tableNode.clientWidth * 0.3 - 1) + 'px')
-        .text('Executable');
-    headRow.append('th')
-        .style('width', (tableNode.clientWidth * 0.2 - 1) + 'px')
-        .text('Submit date');
-    headRow.append('th')
-        .style('width', (tableNode.clientWidth * 0.15 - 1) + 'px')
-        .text('Jobs');
+    headRow.append('th').text('ClusterId');
+    headRow.append('th').text('User');
+    headRow.append('th').text('Executable');
+    headRow.append('th').text('Submit date');
+    headRow.append('th').text('#Jobs');
+
+    setColumnWidths(table, headRow, clusterListHeadWidths);
 
     table = d3.select('#jobList')
         .style('height', '42px');
 
-    tableNode = table.node();
-
     headRow = table.select('thead').append('tr');
-    headRow.append('th')
-        .style('width', (tableNode.clientWidth * 0.08 - 1) + 'px')
-        .text('ClusterId');
-    headRow.append('th')
-        .style('width', (tableNode.clientWidth * 0.08 - 1) + 'px')
-        .text('ProcId');
-    headRow.append('th')
-        .style('width', (tableNode.clientWidth * 0.08 - 1) + 'px')
-        .text('User');
-    headRow.append('th')
-        .style('width', (tableNode.clientWidth * 0.08 - 1) + 'px')
-        .text('Executable');
-    headRow.append('th')
-        .style('width', (tableNode.clientWidth * 0.13 - 1) + 'px')
-        .text('Start time');
-    headRow.append('th')
-        .style('width', (tableNode.clientWidth * 0.05 - 1) + 'px')
-        .text('Succeeded');
-    headRow.append('th')
-        .style('width', (tableNode.clientWidth * 0.2 - 1) + 'px')
-        .text('CPU time');
-    headRow.append('th')
-        .style('width', (tableNode.clientWidth * 0.2 - 1) + 'px')
-        .text('Wallclock time');
-    headRow.append('th')
-        .style('width', (tableNode.clientWidth * 0.1 - 1) + 'px')
-        .text('Exit code');
+
+    headRow.append('th').text('ClusterId');
+    headRow.append('th').text('ProcId');
+    headRow.append('th').text('User');
+    headRow.append('th').text('Executable');
+    headRow.append('th').text('Start date');
+    headRow.append('th').text('Frontend');
+    headRow.append('th').text('Site');
+    headRow.append('th').text('Success');
+    headRow.append('th').text('CPU time');
+    headRow.append('th').text('Wallclock time');
+    headRow.append('th').text('Exit code');
+
+    setColumnWidths(table, headRow, jobListWidths);
+
+    findClusters();
+    loadJobs();
 }
 
 function displayUsers(users)
@@ -101,7 +99,10 @@ var findClusterBlocked = false;
 var clusterSearchKeys = {
     'search': 'clusters',
     'users': [],
-    'cmds': []
+    'cmds': [],
+    'ids': [],
+    'begin': '',
+    'end': ''
 };
 
 function findClusters()
@@ -114,7 +115,7 @@ function findClusters()
     findClusterBlocked = true;
     setTimeout(function () { findClusterBlocked = false; }, 1000);
 
-    var search = {'users': [], 'cmds': []};
+    var search = {'users': [], 'cmds': [], 'ids': [], 'begin': '', 'end': ''};
 
     d3.select('#users').selectAll('input')
         .each(function () {
@@ -128,20 +129,39 @@ function findClusters()
         search.cmds.sort();
     }
 
+    var idstr = $.trim(d3.select('#clusterIds').property('value'));
+    if (idstr != '') {
+        var idstrs = idstr.split(' ');
+        for (var x in idstrs) {
+            var i = parseInt(idstrs[x]);
+            if (i == i)
+                search.ids.push(i);
+        }
+        search.ids.sort();
+    }
+
+    search.begin = $.trim(d3.select('#submitBegin').property('value'));
+    search.end = $.trim(d3.select('#submitEnd').property('value'));
+
     var changed = false;
     for (var key in search) {
         current = clusterSearchKeys[key];
-        if (current.length == search[key].length) {
-            var x = 0;
-            for (x = 0; x != current.length; ++x) {
-                if (search[key][x] != current[x])
-                    break;
+        if (Array.isArray(current)) {
+            if (current.length == search[key].length) {
+                var x = 0;
+                for (x = 0; x != current.length; ++x) {
+                    if (search[key][x] != current[x])
+                        break;
+                }
+                if (x == current.length)
+                    continue;
             }
-            if (x == current.length)
-                continue;
         }
+        else if (current == search[key])
+            continue;
 
         changed = true;
+        break;
     }
 
     if (!changed)
@@ -149,6 +169,9 @@ function findClusters()
 
     clusterSearchKeys.users = search.users;
     clusterSearchKeys.cmds = search.cmds;
+    clusterSearchKeys.ids = search.ids;
+    clusterSearchKeys.begin = search.begin;
+    clusterSearchKeys.end = search.end;
 
     var spinner = new Spinner({'scale': 5, 'corners': 0, 'width': 2, 'position': 'relative', 'top': '-50%', 'left': '50%'});
     spinner.spin();
@@ -163,69 +186,176 @@ function findClusters()
 function showClusters(data)
 {
     var table = d3.select('#clusterList');
+    var tbody = table.select('tbody');
 
-    var rows = table.select('tbody').selectAll('tr')
+    if (data.length > 7)
+        tbody.style('height', '300px');
+    else
+        tbody.style('height', (42 * data.length) + 'px');
+
+    var rows = tbody.selectAll('tr')
         .remove()
         .data(data)
         .enter()
-        .append('tr')
-        .attr('id', function (d) { return 'cluster' + d.cid; });
-
-    var tableNode = table.node();
+        .append('tr');
 
     rows.append('td')
         .classed('select', true)
-        .style({'width': (tableNode.clientWidth * 0.05 - 1) + 'px', 'padding': 0})
         .append('input')
         .attr('type', 'checkbox')
+        .property('value', function (d) { return d.cid; })
         .on('change', function () { loadJobs(); });
     rows.append('td')
-        .classed('clusterId', true)
-        .style('width', (tableNode.clientWidth * 0.15 - 11) + 'px')
         .text(function (d) { return d.cid; });
-    rows.append('td')
-        .style('width', (tableNode.clientWidth * 0.15 - 11) + 'px')
+    rows.append('td').classed('textcol', true)
         .text(function (d) { return d.user; });
-    rows.append('td')
-        .style('width', (tableNode.clientWidth * 0.3 - 11) + 'px')
-        .text(function (d) { return d.cmd; });
-    rows.append('td')
-        .style('width', (tableNode.clientWidth * 0.2 - 11) + 'px')
+    rows.append('td').classed('textcol', true)
+        .text(function (d) { return d.cmd.substring(0, 18); });
+    rows.append('td').classed('textcol', true)
         .text(function (d) { return d.timestamp; });
     rows.append('td')
         .text(function (d) { return d.njobs; });
+
+    setColumnWidths(table, rows, clusterListBodyWidths);
 }
+
+var loadJobsBlocked = false;
+var jobSearchKeys = {
+    'search': 'jobs',
+    'clusterIds': [],
+    'wallTimeMin': 0,
+    'wallTimeMax': 0,
+    'cpuTimeMin': 0,
+    'cpuTimeMax': 0
+};
 
 function loadJobs()
 {
-    d3.select('#jobList tbody').selectAll('tr')
-        .remove();
+    if (loadJobsBlocked) {
+        setTimeout(function () { loadJobs(); }, 1000);
+        return;
+    }
+
+    loadJobsBlocked = true;
+    setTimeout(function () { loadJobsBlocked = false; }, 1000);
 
     var clusterIds = [];
-    d3.selectAll('#clusterList tbody tr')
+
+    d3.selectAll('#clusterList tbody input')
         .each(function () {
-                var thissel = d3.select(this);
-                if (thissel.select('td.select input').property('checked'))
-                    clusterIds.push(0 + thissel.select('.clusterId').text());
+                if (this.checked)
+                    clusterIds.push(parseInt(this.value, 10));
             });
 
     if (clusterIds.length == 0)
         return;
-    
+
+    clusterIds.sort();
+
+    var keys = {
+        'wallTimeMin': parseInt(d3.select('#wallTimeMin').property('value')),
+        'wallTimeMax': parseInt(d3.select('#wallTimeMax').property('value')),
+        'cpuTimeMin': parseInt(d3.select('#cpuTimeMin').property('value')),
+        'cpuTimeMax': parseInt(d3.select('#cpuTimeMax').property('value'))
+    };
+
+    for (var k in keys) {
+        if (keys[k] != keys[k])
+            keys[k] = 0;
+    }
+
+    var changed = (clusterIds.length != jobSearchKeys.clusterIds.length);
+
+    if (!changed) {
+        for (var k in keys) {
+            if (keys[k] != jobSearchKeys[k]) {
+                changed = true;
+                break;
+            }
+        }
+    }
+
+    if (!changed) {
+        for (var x = 0; x != clusterIds.length; ++x) {
+            if (clusterIds[x] != jobSearchKeys.clusterIds[x]) {
+                changed = true;
+                break;
+            }
+        }
+    }
+
+    if (!changed)
+        return;
+
+    jobSearchKeys.clusterIds = clusterIds;
+    for (var k in keys)
+        jobSearchKeys[k] = keys[k];
+
+    d3.select('#jobList tbody').selectAll('tr')
+        .remove();
+
+    d3.select('#sites').selectAll('div.site')
+        .remove();
+
+    d3.select('#exitcodes').selectAll('div.exitcode')
+        .remove();
+
     var spinner = new Spinner({'scale': 5, 'corners': 0, 'width': 2, 'position': 'absolute'});
     spinner.spin();
     $('#jobView').append($(spinner.el));
 
-    var inputData = {
-        'search': 'jobs',
-        'clusterIds': clusterIds
-    };
-
-    $.ajax({'url': 'search.php', 'data': inputData, 'success': function (data, textStatus, jqXHR) {
-                showJobs(data, 'table');
+    $.ajax({'url': 'search.php', 'data': jobSearchKeys, 'success': function (data, textStatus, jqXHR) {
+                setupJobSpecs(data);
+                showJobs(data.jobs, 'table');
+                narrowJobs();
                 spinner.stop();
             }, 'dataType': 'json', 'async': false});
 }
+
+function setupJobSpecs(data)
+{
+    var sitesBox = d3.select('#sites');
+    
+    var textHeight = parseInt(window.getComputedStyle(sitesBox.node()).fontSize, 10);
+    if (data.sites.length > 5) {
+        sitesBox.style('height', (textHeight * 6) + 'px');
+    }
+    else
+        sitesBox.style('height', (textHeight * (sites.length + 1)) + 'px');
+
+    var lines = sitesBox.selectAll('div.site')
+        .data(data.sites)
+        .enter().append('div').classed('site', true);
+    
+    lines.append('input').attr('type', 'checkbox')
+        .property('value', function (s) { return s; })
+        .property('checked', true)
+        .on('change', function () { narrowJobs(); });
+
+    lines.append('span')
+        .text(function (s) { return s; });
+
+    var codesBox = d3.select('#exitcodes');
+    
+    textHeight = parseInt(window.getComputedStyle(codesBox.node()).fontSize, 10);
+    if (data.exitcodes.length > 5) {
+        codesBox.style('height', (textHeight * 6) + 'px');
+    }
+    else
+        codesBox.style('height', (textHeight * (exitcodes.length + 1)) + 'px');
+
+    var lines = codesBox.selectAll('div.exitcode')
+        .data(data.exitcodes)
+        .enter().append('div').classed('exitcode', true);
+    
+    lines.append('input').attr('type', 'checkbox')
+        .property('value', function (c) { return c; })
+        .property('checked', true)
+        .on('change', function () { narrowJobs(); });
+
+    lines.append('span')
+        .text(function (c) { return c == null ? '-' : c; });
+}    
 
 function showJobs(data, area)
 {
@@ -237,34 +367,90 @@ function showJobs(data, area)
             .enter()
             .append('tr');
 
-        var tableNode = table.node();
-
         rows.append('td')
-            .style('width', (tableNode.clientWidth * 0.08 - 11) + 'px')
             .text(function (d) { return d.cid; });
         rows.append('td')
-            .style('width', (tableNode.clientWidth * 0.08 - 11) + 'px')
             .text(function (d) { return d.pid; });
-        rows.append('td')
-            .style('width', (tableNode.clientWidth * 0.08 - 11) + 'px')
+        rows.append('td').classed('textcol', true)
             .text(function (d) { return d.user; });
-        rows.append('td')
-            .style('width', (tableNode.clientWidth * 0.08 - 11) + 'px')
-            .text(function (d) { return d.cmd; });
-        rows.append('td')
-            .style({'width': (tableNode.clientWidth * 0.13 - 11) + 'px', 'text-align': 'center'})
+        rows.append('td').classed('textcol', true)
+            .text(function (d) { return d.cmd.substring(0, 10); });
+        rows.append('td').classed('textcol', true)
             .text(function (d) { return d.matchTime; });
-        rows.append('td')
-            .style({'width': (tableNode.clientWidth * 0.05 - 11) + 'px', 'text-align': 'center'})
+        rows.append('td').classed('textcol', true)
+            .text(function (d) { return d.frontend; });
+        rows.append('td').classed('textcol', true)
+            .text(function (d) { return d.site; });
+        rows.append('td').classed('textcol', true)
             .text(function (d) { return d.success; });
         rows.append('td')
-            .style('width', (tableNode.clientWidth * 0.2 - 11) + 'px')
             .text(function (d) { return d.cputime; });
         rows.append('td')
-            .style('width', (tableNode.clientWidth * 0.2 - 11) + 'px')
             .text(function (d) { return d.walltime; });
         rows.append('td')
-            .style('width', (tableNode.clientWidth * 0.1 - 11) + 'px')
-            .text(function (d) { return d.exitcode; });
+            .text(function (d) { return d.exitcode == null ? '-' : d.exitcode; });
+
+        setColumnWidths(table, rows, jobListWidths);
     }
+}
+
+function narrowJobs()
+{
+    var sites = [];
+    var success = d3.select('#succeeded').property('value');
+    var exitcodes = [];
+
+    d3.select('#sites').selectAll('input')
+        .each(function () {
+                if (this.checked)
+                    sites.push(this.value);
+            });
+
+    d3.select('#exitcodes').selectAll('input')
+        .each(function () {
+                if (this.checked) {
+                    var val = parseInt(this.value);
+                    if (val != val)
+                        exitcodes.push(null);
+                    else
+                        exitcodes.push(parseInt(this.value, 10));
+                }
+            });
+
+    d3.select('#jobList').select('tbody').selectAll('tr')
+        .each(function (d) {
+                if (success != "" && d.success != success) {
+                    this.style.display = 'none';
+                    return;
+                }
+                
+                var x = 0;
+                for (; x != sites.length; ++x) {
+                    if (sites[x] == d.site)
+                        break;
+                }
+                if (x == sites.length) {
+                    this.style.display = 'none';
+                    return;
+                }
+
+                x = 0;
+                for (; x != exitcodes.length; ++x) {
+                    if (exitcodes[x] == d.exitcode)
+                        break;
+                }
+                if (x == exitcodes.length) {
+                    this.style.display = 'none';
+                    return;
+                }
+
+                this.style.display = 'block';
+            });
+}
+
+function setColumnWidths(table, rows, widths)
+{
+    var tableWidth = table.node().clientWidth;
+    rows.selectAll('th,td').data(widths)
+        .style('width', function (d, i) { return (tableWidth * d - (i == widths.length - 1 ? 10 : 11)) + 'px'; });
 }
