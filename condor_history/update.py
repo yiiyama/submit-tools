@@ -35,7 +35,7 @@ users = dict(db_query('SELECT `name`, `user_id` FROM `users`'))
 sites = {}
 for site_id, site_name, site_pool in db_query('SELECT `site_id`, `site_name`, `site_pool` FROM `sites`'):
     sites[(site_name, site_pool)] = site_id
-frontends = dict(db_query('SELECT `frontend_name`, `frontend_id` FROM `frontends` WHERE `frontend_name`'))
+frontends = dict(db_query('SELECT `frontend_name`, `frontend_id` FROM `frontends`'))
 
 # Form the constraint expression for condor_history:
 # 1. All new clusters
@@ -48,12 +48,40 @@ if last_cluster_id is None:
 
 logger.info('Last known cluster ID: %d', last_cluster_id)
 
-open_clusters = set(db_query('SELECT `cluster_id` FROM `open_clusters`'))
+open_clusters = set(db_query('SELECT `cluster_id` FROM `open_clusters` ORDER BY `cluster_id`'))
 
 # ExprTree override of __or__ is buggy; need to concatenate by hand
 constraints = ['ClusterId > %d' % last_cluster_id]
+range_begin = -1
+range_end = -1
 for cluster_id in open_clusters:
-    constraints.append('ClusterId == %d' % cluster_id)
+    if cluster_id > last_cluster_id:
+        break
+
+    if range_begin == -1:
+        range_begin = cluster_id
+        range_end = cluster_id
+        continue
+
+    if cluster_id == range_end + 1:
+        range_end = cluster_id
+    else:
+        if range_begin == range_end:
+            constraints.append('ClusterId == %d' % range_begin)
+        else:
+            constraints.append('(ClusterId >= %d && ClusterId <= %d)' % (range_begin, range_end))
+
+        range_begin = cluster_id
+        range_end = cluster_id
+
+    # empirically; condor_history fails when the constraint string is too long
+    if len(constraints) > 5000:
+        break
+
+if range_begin == range_end:
+    constraints.append('ClusterId == %d' % range_begin)
+else:
+    constraints.append('(ClusterId >= %d && ClusterId <= %d)' % (range_begin, range_end))
 
 constraint = classad.ExprTree('||'.join(constraints))
 
@@ -64,7 +92,7 @@ is_nobody = set()
 classad_attrs = ['GlobalJobId', 'ClusterId', 'ProcId', 'User', 'Cmd', 'MATCH_GLIDEIN_SiteWMS_Queue', 'LastRemoteHost', 'MATCH_GLIDEIN_SiteWMS_Slot', 'MATCH_GLIDEIN_Site', 'LastRemotePool', 'LastMatchTime', 'RemoteWallClockTime', 'RemoteUserCpu', 'ExitCode', 'JobStatus']
 
 for jobads in schedd.history(constraint, classad_attrs, -1):
-    logger.info(str(jobads))
+    logger.debug(str(jobads))
 
     try:
         match_time = time.gmtime(jobads['LastMatchTime'])
@@ -205,6 +233,8 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
              cpu_time,
              wall_time,
              exit_code)
+    
+    cluster_jobs[cluster_id].add(proc_id)
 
 # save currently open clusters
 logger.info('Current open clusters: %s', ' '.join('%d' % c for c in current_open_clusters))
