@@ -125,9 +125,8 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
                 except KeyError:
                     # User unknown to database
                     try:
-                        logger.info('Inserting user %s(%d)', user, user_id)
-
                         user_id = pwd.getpwnam(user).pw_uid
+                        logger.info('Inserting user %s(%d)', user, user_id)
                         db_query('INSERT INTO `users` VALUES (%s, %s)', user_id, user)
                         users[user] = user_id
     
