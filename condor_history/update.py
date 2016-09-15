@@ -41,48 +41,49 @@ frontends = dict(db_query('SELECT `frontend_name`, `frontend_id` FROM `frontends
 # 1. All new clusters
 # 2. All clusters tagged open in the last iteration
 
-open_clusters = set(db_query('SELECT `cluster_id` FROM `open_clusters`'))
-open_clusters.update(current_open_clusters)
+classad_attrs = ['GlobalJobId', 'ClusterId', 'ProcId', 'User', 'Cmd', 'MATCH_GLIDEIN_SiteWMS_Queue', 'LastRemoteHost', 'MATCH_GLIDEIN_SiteWMS_Slot', 'MATCH_GLIDEIN_Site', 'LastRemotePool', 'LastMatchTime', 'RemoteWallClockTime', 'RemoteUserCpu', 'ExitCode', 'JobStatus']
 
-# ExprTree override of __or__ is buggy; need to concatenate by hand
-constraints = ['ClusterId > %d' % max(open_clusters)]
-range_begin = -1
-range_end = -1
-for cluster_id in sorted(open_clusters):
-    if range_begin == -1:
-        range_begin = cluster_id
-        range_end = cluster_id
-        continue
+open_clusters = db_query('SELECT `cluster_id` FROM `open_clusters`')
+open_clusters.extend(list(current_open_clusters))
+open_clusters.sort()
 
-    if cluster_id == range_end + 1:
-        range_end = cluster_id
-    else:
-        if range_begin == range_end:
-            constraints.append('ClusterId == %d' % range_begin)
+all_ads = []
+
+while len(open_clusters) != 0:
+    # ExprTree override of __or__ is buggy; need to concatenate by hand
+    ranges = []
+    while len(open_clusters) != 0:
+        cluster_id = open_clusters.pop(0)
+
+        if len(ranges) == 0 or cluster_id != ranges[-1][1] + 1:
+            ranges.append((cluster_id, cluster_id))
+
+            # empirically; condor_history fails when the constraint string is too long
+            if len(ranges) == 2000:
+                break
         else:
-            constraints.append('(ClusterId >= %d && ClusterId <= %d)' % (range_begin, range_end))
+            ranges[-1] = (ranges[-1][0], cluster_id)
 
-        range_begin = cluster_id
-        range_end = cluster_id
+    constraints = []
+    for begin, end in ranges:
+        if begin == end:
+            constraints.append('ClusterId == %d' % begin)
+        else:
+            constraints.append('(ClusterId >= %d && ClusterId <= %d)' % (begin, end))
 
-    # empirically; condor_history fails when the constraint string is too long
-    if len(constraints) > 5000:
-        break
+    # exhausted the list of open clusters; append "everything beyond"
+    if len(open_clusters) == 0:
+        constraints.append('ClusterId > %d' % ranges[-1][1])
+    
+    constraint = classad.ExprTree('||'.join(constraints))
 
-if range_begin == range_end:
-    constraints.append('ClusterId == %d' % range_begin)
-else:
-    constraints.append('(ClusterId >= %d && ClusterId <= %d)' % (range_begin, range_end))
-
-constraint = classad.ExprTree('||'.join(constraints))
+    all_ads.extend(schedd.history(constraint, classad_attrs, -1))
 
 # Some efficiency measures
 cluster_jobs = dict()
 is_nobody = set()
 
-classad_attrs = ['GlobalJobId', 'ClusterId', 'ProcId', 'User', 'Cmd', 'MATCH_GLIDEIN_SiteWMS_Queue', 'LastRemoteHost', 'MATCH_GLIDEIN_SiteWMS_Slot', 'MATCH_GLIDEIN_Site', 'LastRemotePool', 'LastMatchTime', 'RemoteWallClockTime', 'RemoteUserCpu', 'ExitCode', 'JobStatus']
-
-for jobads in schedd.history(constraint, classad_attrs, -1):
+for jobads in all_ads:
     logger.debug(str(jobads))
 
     try:
@@ -95,10 +96,7 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
     proc_id = jobads['ProcId']
 
     if cluster_id not in cluster_jobs:
-        # Fetch the list of proc_ids already recorded
-        cluster_jobs[cluster_id] = set(db_query('SELECT `proc_id` FROM `jobs` WHERE (`instance`, `cluster_id`) = (%s, %s)', CONDOR_INSTANCE, cluster_id))
-
-        if len(cluster_jobs[cluster_id]) == 0:
+        if db_query('SELECT COUNT(*) FROM `job_clusters` WHERE (`instance`, `cluster_id`) = (%s, %s)', CONDOR_INSTANCE, cluster_id) == 0:
             # This is a new cluster
 
             # Find user id first
@@ -139,10 +137,10 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
             logger.info('Inserting cluster (%d, %s, %s, %s)', cluster_id, user, time.strftime('%Y-%m-%d %H:%M:%S', submit_time), os.path.basename(jobads['Cmd'])[:16])
     
             # Now insert the cluster information
-            try:
-                db_query('INSERT INTO `job_clusters` VALUES (%s, %s, %s, %s, %s)', CONDOR_INSTANCE, cluster_id, user_id, time.strftime('%Y-%m-%d %H:%M:%S', submit_time), os.path.basename(jobads['Cmd'])[:16])
-            except:
-                logger.warning('Cluster %d already existed in record.', cluster_id)
+            db_query('INSERT INTO `job_clusters` VALUES (%s, %s, %s, %s, %s)', CONDOR_INSTANCE, cluster_id, user_id, time.strftime('%Y-%m-%d %H:%M:%S', submit_time), os.path.basename(jobads['Cmd'])[:16])
+
+        # Fetch the list of proc_ids already recorded
+        cluster_jobs[cluster_id] = set(db_query('SELECT `proc_id` FROM `jobs` WHERE (`instance`, `cluster_id`) = (%s, %s)', CONDOR_INSTANCE, cluster_id))
 
     if proc_id in cluster_jobs[cluster_id]:
         continue

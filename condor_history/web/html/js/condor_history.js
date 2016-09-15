@@ -11,7 +11,7 @@ function initPage()
     };
 
     $.get('search.php', inputData, function (data, textStatus, jqXHR) {
-            displayUsers(data);
+            displayUsers(data.users);
         }, 'json');
 
     // Set up date picker
@@ -68,6 +68,23 @@ function initPage()
     headRow.append('th').text('Exit code');
 
     setColumnWidths(table, headRow, jobListWidths);
+
+    headRow = table.select('thead').append('tr');
+
+    headRow.append('th').text('Total');
+    headRow.append('th').classed('totalJobs', true);
+    headRow.append('th');
+    headRow.append('th');
+    headRow.append('th');
+    headRow.append('th');
+    headRow.append('th');
+    headRow.append('th').classed('totalSuccess', true).style('text-align', 'right');
+    headRow.append('th').classed('totalCPUTime', true).style('text-align', 'right');
+    headRow.append('th').classed('totalWallTime', true).style('text-align', 'right');
+    headRow.append('th');
+
+    setColumnWidths(table, headRow, jobListWidths);
+    headRow.selectAll('th').style({'color': 'black', 'background-color': '#ffffff'});
 
     findClusters();
     loadJobs();
@@ -167,6 +184,9 @@ function findClusters()
     if (!changed)
         return;
 
+    d3.select('#clusterList tbody').selectAll('tr')
+        .remove();
+
     clusterSearchKeys.users = search.users;
     clusterSearchKeys.cmds = search.cmds;
     clusterSearchKeys.ids = search.ids;
@@ -178,7 +198,7 @@ function findClusters()
     $('#clusterSelect').append($(spinner.el));
 
     $.get('search.php', clusterSearchKeys, function (data, textStatus, jqXHR) {
-            showClusters(data);
+            showClusters(data.clusters);
             spinner.stop();
         }, 'json');
 }
@@ -194,10 +214,10 @@ function showClusters(data)
         tbody.style('height', (42 * data.length) + 'px');
 
     var rows = tbody.selectAll('tr')
-        .remove()
         .data(data)
         .enter()
-        .append('tr');
+        .append('tr')
+        .each(function (d, i) { if (i % 2 == 1) d3.select(this).classed('odd', true); });
 
     rows.append('td')
         .classed('select', true)
@@ -338,11 +358,11 @@ function setupJobSpecs(data)
     var codesBox = d3.select('#exitcodes');
     
     textHeight = parseInt(window.getComputedStyle(codesBox.node()).fontSize, 10);
-    if (data.exitcodes.length > 5) {
-        codesBox.style('height', (textHeight * 6) + 'px');
+    if (data.exitcodes.length > 3) {
+        codesBox.style('height', (textHeight * 4) + 'px');
     }
     else
-        codesBox.style('height', (textHeight * (exitcodes.length + 1)) + 'px');
+        codesBox.style('height', (textHeight * (data.exitcodes.length + 1)) + 'px');
 
     var lines = codesBox.selectAll('div.exitcode')
         .data(data.exitcodes)
@@ -361,8 +381,29 @@ function showJobs(data, area)
 {
     if (area == 'table') {
         var table = d3.select('#jobList');
-        var rows = table.select('tbody').selectAll('tr')
-            .remove()
+        var thead = table.select('thead');
+        var tbody = table.select('tbody');
+
+        var nSuccess = 0;
+        var totalCPUTime = 0;
+        var totalWallTime = 0;
+        for (var x in data) {
+            if (data[x].success == 'Yes')
+                nSuccess += 1;
+            totalCPUTime += data[x].cputime;
+            totalWallTime += data[x].walltime;
+        }
+
+        thead.select('th.totalJobs')
+            .text(data.length + ' Jobs');
+        thead.select('th.totalSuccess')
+            .text(nSuccess);
+        thead.select('th.totalCPUTime')
+            .text(totalCPUTime);
+        thead.select('th.totalWallTime')
+            .text(totalWallTime);
+
+        var rows = tbody.selectAll('tr')
             .data(data)
             .enter()
             .append('tr');

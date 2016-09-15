@@ -13,6 +13,20 @@ body {
     color: white;
 }
 
+#header h1 {
+    width: 40%;
+    float: left;
+}
+
+#fineprints {
+    font: 14px sans-serif;
+    width: 30%;
+    float: right;
+    text-align: right;
+    margin-top: 80px;
+    height: 20px;
+}
+
 #main {
     width: 100%;
 }
