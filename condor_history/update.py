@@ -95,7 +95,7 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
     logger.debug(str(jobads))
 
     try:
-        match_time = time.gmtime(jobads['LastMatchTime'])
+        match_time = time.localtime(jobads['LastMatchTime'])
     except KeyError:
         # This job was not matched; we will not record it
         continue
@@ -140,7 +140,7 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
             # This is the submit time of this particular process and not of the cluster
             # but we are not interested in seconds-precision here; is a good enough approximation
             global_jobid = jobads['GlobalJobId']
-            submit_time = time.gmtime(int(global_jobid[global_jobid.rfind('#') + 1:]))
+            submit_time = time.localtime(int(global_jobid[global_jobid.rfind('#') + 1:]))
 
             logger.info('Inserting cluster (%d, %s, %s, %s)', cluster_id, user, time.strftime('%Y-%m-%d %H:%M:%S', submit_time), os.path.basename(jobads['Cmd'])[:16])
     
