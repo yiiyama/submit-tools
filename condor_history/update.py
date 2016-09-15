@@ -24,7 +24,7 @@ from db import db_query
 
 schedd = htcondor.Schedd()
 
-# First save the list of cluster ids that are still in the queue
+# First fetch the list of cluster ids that are still in the queue
 current_open_clusters = set()
 
 for jobads in schedd.xquery('True', ['ClusterId']):
@@ -41,23 +41,14 @@ frontends = dict(db_query('SELECT `frontend_name`, `frontend_id` FROM `frontends
 # 1. All new clusters
 # 2. All clusters tagged open in the last iteration
 
-last_cluster_id = db_query('SELECT MAX(`cluster_id`) FROM `job_clusters` WHERE `instance` = %s', CONDOR_INSTANCE)[0]
-
-if last_cluster_id is None:
-    last_cluster_id = 0
-
-logger.info('Last known cluster ID: %d', last_cluster_id)
-
-open_clusters = set(db_query('SELECT `cluster_id` FROM `open_clusters` ORDER BY `cluster_id`'))
+open_clusters = set(db_query('SELECT `cluster_id` FROM `open_clusters`'))
+open_clusters.update(current_open_clusters)
 
 # ExprTree override of __or__ is buggy; need to concatenate by hand
-constraints = ['ClusterId > %d' % last_cluster_id]
+constraints = ['ClusterId > %d' % max(open_clusters)]
 range_begin = -1
 range_end = -1
-for cluster_id in open_clusters:
-    if cluster_id > last_cluster_id:
-        break
-
+for cluster_id in sorted(open_clusters):
     if range_begin == -1:
         range_begin = cluster_id
         range_end = cluster_id
@@ -104,7 +95,10 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
     proc_id = jobads['ProcId']
 
     if cluster_id not in cluster_jobs:
-        if cluster_id not in open_clusters:
+        # Fetch the list of proc_ids already recorded
+        cluster_jobs[cluster_id] = set(db_query('SELECT `proc_id` FROM `jobs` WHERE (`instance`, `cluster_id`) = (%s, %s)', CONDOR_INSTANCE, cluster_id))
+
+        if len(cluster_jobs[cluster_id]) == 0:
             # This is a new cluster
 
             # Find user id first
@@ -145,13 +139,10 @@ for jobads in schedd.history(constraint, classad_attrs, -1):
             logger.info('Inserting cluster (%d, %s, %s, %s)', cluster_id, user, time.strftime('%Y-%m-%d %H:%M:%S', submit_time), os.path.basename(jobads['Cmd'])[:16])
     
             # Now insert the cluster information
-            db_query('INSERT INTO `job_clusters` VALUES (%s, %s, %s, %s, %s)', CONDOR_INSTANCE, cluster_id, user_id, time.strftime('%Y-%m-%d %H:%M:%S', submit_time), os.path.basename(jobads['Cmd'])[:16])
-    
-            cluster_jobs[cluster_id] = set()
-
-        else:
-            # Fetch the list of proc_ids already recorded
-            cluster_jobs[cluster_id] = set(db_query('SELECT `proc_id` FROM `jobs` WHERE (`instance`, `cluster_id`) = (%s, %s)', CONDOR_INSTANCE, cluster_id))
+            try:
+                db_query('INSERT INTO `job_clusters` VALUES (%s, %s, %s, %s, %s)', CONDOR_INSTANCE, cluster_id, user_id, time.strftime('%Y-%m-%d %H:%M:%S', submit_time), os.path.basename(jobads['Cmd'])[:16])
+            except:
+                logger.warning('Cluster %d already existed in record.', cluster_id)
 
     if proc_id in cluster_jobs[cluster_id]:
         continue
