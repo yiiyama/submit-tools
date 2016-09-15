@@ -96,7 +96,7 @@ for jobads in all_ads:
     proc_id = jobads['ProcId']
 
     if cluster_id not in cluster_jobs:
-        if db_query('SELECT COUNT(*) FROM `job_clusters` WHERE (`instance`, `cluster_id`) = (%s, %s)', CONDOR_INSTANCE, cluster_id) == 0:
+        if db_query('SELECT COUNT(*) FROM `job_clusters` WHERE (`instance`, `cluster_id`) = (%s, %s)', CONDOR_INSTANCE, cluster_id)[0] == 0:
             # This is a new cluster
 
             # Find user id first
