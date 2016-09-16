@@ -7,6 +7,9 @@ update.py - Collect job information from schedd and save into database.
 # Increment this number whenever ClusterId counter is reset
 CONDOR_INSTANCE = 1
 
+# Preempted slot names pattern
+EAPS_PREEMPTED = ('MIT_CampusFactory', 'eth.cluster', 'boj')
+
 import sys
 import os
 import pwd
@@ -41,7 +44,7 @@ frontends = dict(db_query('SELECT `frontend_name`, `frontend_id` FROM `frontends
 # 1. All new clusters
 # 2. All clusters tagged open in the last iteration
 
-classad_attrs = ['GlobalJobId', 'ClusterId', 'ProcId', 'User', 'Cmd', 'MATCH_GLIDEIN_SiteWMS_Queue', 'LastRemoteHost', 'MATCH_GLIDEIN_SiteWMS_Slot', 'MATCH_GLIDEIN_Site', 'LastRemotePool', 'LastMatchTime', 'RemoteWallClockTime', 'RemoteUserCpu', 'ExitCode', 'JobStatus']
+classad_attrs = ['GlobalJobId', 'ClusterId', 'ProcId', 'User', 'Cmd', 'MATCH_GLIDEIN_SiteWMS_Queue', 'LastRemoteHost', 'MATCH_GLIDEIN_SiteWMS_Slot', 'BOSCOCluster', 'MATCH_GLIDEIN_Site', 'LastRemotePool', 'LastMatchTime', 'RemoteWallClockTime', 'RemoteUserCpu', 'ExitCode', 'JobStatus']
 
 open_clusters = db_query('SELECT `cluster_id` FROM `open_clusters`')
 open_clusters.extend(list(current_open_clusters))
@@ -166,6 +169,14 @@ for jobads in all_ads:
 
         remote_node = remote_slot[remote_slot.find('@') + 1:]
         site_pool = remote_node[remote_node.find('.') + 1:]
+
+    if site_name == EAPS_PREEMPTED[0] and site_pool == EAPS_PREEMPTED[1]:
+        try:
+            bosco_cluster = str(jobads['BOSCOCluster'])
+            if bosco_cluster.startswith(EAPS_PREEMPTED[2]):
+                site_pool = 'preempt.' + site_pool
+        except KeyError:
+            pass
 
     try:
         site_id = sites[(site_name, site_pool)]
