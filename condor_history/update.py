@@ -7,9 +7,6 @@ update.py - Collect job information from schedd and save into database.
 # Increment this number whenever ClusterId counter is reset
 CONDOR_INSTANCE = 1
 
-# Preempted slot names pattern
-EAPS_PREEMPTED = ('MIT_CampusFactory', 'eth.cluster', 'boj')
-
 import sys
 import os
 import pwd
@@ -169,14 +166,6 @@ for jobads in all_ads:
 
         remote_node = remote_slot[remote_slot.find('@') + 1:]
         site_pool = remote_node[remote_node.find('.') + 1:]
-
-    if site_name == EAPS_PREEMPTED[0] and site_pool == EAPS_PREEMPTED[1]:
-        try:
-            bosco_cluster = str(jobads['BOSCOCluster'])
-            if bosco_cluster.startswith(EAPS_PREEMPTED[2]):
-                site_pool = 'preempt.' + site_pool
-        except KeyError:
-            pass
 
     try:
         site_id = sites[(site_name, site_pool)]
