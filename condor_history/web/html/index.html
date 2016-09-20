@@ -8,6 +8,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.0/jquery-ui.min.js"></script>
     <script type="text/javascript" src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
     <script type="text/javascript" src="http://spin.js.org/spin.min.js"></script>
+    <script type="text/javascript" src="js/colors.js"></script>
     <script type="text/javascript" src="js/condor_history.js"></script>
   </head>
   <body>
@@ -19,17 +20,17 @@
       <section id="search">
         <div id="clusterSearch">
           <div class="clusterSearchKey">User: <div id="users" class="selectMenu"></div></div>
-          <div class="clusterSearchKey">Commands: <br><input type="text" id="cmds" onkeyup="findClusters()" onchange="findClusters()"></div>
-          <div class="clusterSearchKey">ClusterIds: <br><input type="text" id="clusterIds" onkeyup="findClusters()" onchange="findClusters()"></div>
+          <div class="clusterSearchKey">Commands: <br><input type="text" id="cmds"></div>
+          <div class="clusterSearchKey">ClusterIds: <br><input type="text" id="clusterIds"></div>
           <div class="clusterSearchKey">Submit date:
             <div id="dates">
               <div class="datesRow">
                 <div class="datesCol">From</div>
-                <div class="datesCol"><input type="text" id="submitBegin" onchange="findClusters()" onkeyup="findClusters()"></div>
+                <div class="datesCol"><input type="text" id="submitBegin" class="dateField"></div>
               </div>
               <div class="datesRow">
                 <div class="datesCol">Till</div>
-                <div class="datesCol"><input type="text" id="submitEnd" onchange="findClusters()" onkeyup="findClusters()"></div>
+                <div class="datesCol"><input type="text" id="submitEnd" class="dateField"></div>
               </div>
             </div>
           </div>
@@ -45,33 +46,24 @@
         </div>
         <div id="jobSearch">
           <div class="jobSearchKey">Wall Time: <br>
-            <input type="text" class="time" id="wallTimeMin" onkeyup="loadJobs()" onchange="loadJobs()"> s - <input type="text" class="time" id="wallTimeMax" onkeyup="loadJobs()" onchange="loadJobs()"> s
+            <input type="text" class="time" id="wallTimeMin"> s - <input type="text" class="time" id="wallTimeMax"> s
           </div>
           <div class="jobSearchKey">CPU Time: <br>
-            <input type="text" class="time" id="cpuTimeMin" onkeyup="loadJobs()" onchange="loadJobs()"> s - <input type="text" class="time" id="cpuTimeMax" onkeyup="loadJobs()" onchange="loadJobs()"> s
+            <input type="text" class="time" id="cpuTimeMin"> s - <input type="text" class="time" id="cpuTimeMax"> s
           </div>
           <div class="jobSearchKey">Site:
             <div id="sites" class="selectMenu"></div>
           </div>
-          <div class="jobSearchKey">Succeeded: <br>
-            <select id="succeeded" onchange="narrowJobs()"><option value=""></option><option value="Yes">Yes</option><option value="No">No</option></select></div>
           <div class="jobSearchKey">Exit Code:
             <div id="exitcodes" class="selectMenu"></div>
           </div>
         </div>
       </section>
-      <section id="jobView">
-        <article id="jobTableArea">
-          <table class="selector" id="jobList">
-            <thead>
-            </thead>
-            <tbody>
-            </tbody>
-          </table>
-        </article>
+      <section id="display">
       </section>
     </main>
     <footer id="footer">
+      <div id="ajaxErrorMessage"></div>
     </footer>
   </body>
   <script type="text/javascript">
