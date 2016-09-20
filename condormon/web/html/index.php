@@ -3,13 +3,15 @@
 $rrdpath = '/var/run/condormon';
 $title = 'subMIT current job status';
 $columns = array(
-                 'Running' => array('T2_US_MIT', 'T3_US_MIT', 'EAPS'),
+                 'Running (MIT)' => array('T2_US_MIT', 'T3_US_MIT', 'EAPS'),
+                 'Running (OSG)' => NULL,
+                 'Running (USCMS)' => NULL,
                  'Idle' => NULL,
                  'Held' => NULL
                  );
 /*LOCAL CONFIG*/
 
-$colgroups = array('Running', 'Idle', 'Held');
+$colgroups = array('Running (MIT)', 'Running (OSG)', 'Running (USCMS)', 'Idle', 'Held');
 
 $ncols = 0;
 foreach($colgroups as $g) {
