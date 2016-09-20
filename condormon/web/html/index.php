@@ -1,19 +1,37 @@
 <?php
-
+/*LOCAL CONFIG*/
 $rrdpath = '/var/run/condormon';
+$title = 'subMIT current job status';
+$columns = array(
+                 'Running' => array('T2_US_MIT', 'T3_US_MIT', 'EAPS'),
+                 'Idle' => NULL,
+                 'Held' => NULL
+                 );
+/*LOCAL CONFIG*/
+
+$colgroups = array('Running', 'Idle', 'Held');
+
+$ncols = 0;
+foreach($colgroups as $g) {
+  if (is_null($columns[$g]))
+    $ncols += 1;
+  else
+    $ncols += count($columns[$g]);
+}
 
 function lastEntry($rrd) {
   global $rrdpath;
+  global $ncols;
 
   $last = rrd_last($rrdpath . '/' . $rrd);
   $options = array('LAST', sprintf('--start=%d', $last - 1), sprintf('--end=%d', $last - 1));
   $dump = rrd_fetch($rrdpath . '/' . $rrd, $options, count($options));
-  if (isset($dump['data']) && count($dump['data']) >= 3) {
-    $chunks = array_chunk($dump['data'], 3);
+  if (isset($dump['data']) && count($dump['data']) >= $ncols) {
+    $chunks = array_chunk($dump['data'], $ncols);
     $entries = $chunks[0];
   }
   else
-    $entries = array(0, 0, 0);
+    $entries = array_fill(0, $ncols, 0);
 
   return $entries;
 }
@@ -32,7 +50,7 @@ closedir($dirp);
 
 $html = '<html>' . "\n";
 $html .= '  <head>' . "\n";
-$html .= '    <title>subMIT current jobs</title>' . "\n";
+$html .= '    <title>' . $title . '</title>' . "\n";
 $html .= '    <style>' . "\n";
 $html .= 'body {' . "\n";
 $html .= '  font-family:helvetica;' . "\n";
@@ -77,19 +95,48 @@ $html .= '  <body>' . "\n";
 $html .= '    <table>' . "\n";
 $html .= '      <colgroup>' . "\n";
 $html .= '        <col style="width:100px;">' . "\n";
-$html .= '        <col style="width:80px;">' . "\n";
-$html .= '        <col style="width:80px;">' . "\n";
-$html .= '        <col style="width:80px;">' . "\n";
-$html .= '        <col style="width:100px;">' . "\n";
+for ($i = 0; $i != $ncols; ++$i)
+  $html .= '        <col style="width:80px;">' . "\n";
+$html .= '        <col style="width:100px;border-left:2px solid;">' . "\n";
 $html .= '      <colgroup>' . "\n";
-$html .= '      <tr>' . "\n";
-$html .= '        <th>User</th><th>Running</th><th>Idle</th><th>Held</th><th style="border-left-width:2px;">Total</th>' . "\n";
-$html .= '      </tr>' . "\n";
+
+if ($ncols == 3) {
+  // no column groups
+  $html .= '      <tr>' . "\n";
+  $html .= '        <th>User</th>';
+  foreach ($colgroups as $g)
+    $html .= '<th>' . $g . '</th>';
+  $html .= '<th>Total</th>' . "\n";
+  $html .= '      </tr>' . "\n";
+}
+else {
+  $html .= '      <tr>' . "\n";
+  $html .= '        <th rowspan="2">User</th>';
+  foreach ($colgroups as $g) {
+    if (is_null($columns[$g]))
+      $html .= '<th rowspan="2">' . $g . '</th>';
+    else
+      $html .= '<th colspan="' . count($columns[$g]) . '">' . $g . '</th>';
+  }
+  $html .= '<th rowspan="2">Total</th>' . "\n";
+  $html .= '      </tr>' . "\n";
+  $html .= '      <tr>' . "\n";
+  $html .= '        ';
+  foreach ($colgroups as $g) {
+    if (!is_null($columns[$g])) {
+      foreach ($columns[$g] as $c)
+        $html .= '<th>' . $c . '</th>';
+    }
+  }
+  $html .= "\n";
+  $html .= '      </tr>' . "\n";
+}
 
 $images = '';
 
 $irow = 0;
-$total = array(0, 0, 0, 0);
+$colTotal = array_fill(0, $ncols, 0);
+$total = 0;
 foreach ($rrds as $rrd) {
   $user = str_replace('.rrd', '', $rrd);
   if ($user == 'Total')
@@ -108,12 +155,12 @@ foreach ($rrds as $rrd) {
     if ($count < 0)
       $count = 0;
     $html .= '<td class="data">' . ((int)$count) . '</td>';
-    $total[$i] += $count;
+    $colTotal[$i] += $count;
   }
   $userTotal = (int)array_sum($lastEntry);
   if ($userTotal < 0)
     $userTotal = 0;
-  $total[3] += $userTotal;
+  $total += $userTotal;
   $html .= '<td class="data" style="border-left-width:2px">' . $userTotal . '</td>' . "\n";
   $html .= '      </tr>' . "\n";
 
@@ -134,9 +181,9 @@ $images .= '    </div>' . "\n";
 
 $html .= '      <tr style="border-top-width:2px;">' . "\n";
 $html .= '        <td>Total</td>';
-for ($i = 0; $i != 3; ++$i)
-  $html .= '<td class="data">' . $total[$i] . '</td>';
-$html .= '<td class="data" style="border-left-width:2px">' . $total[3] . '</td>' . "\n";
+foreach ($colTotal as $ct)
+  $html .= '<td class="data">' . $ct . '</td>';
+$html .= '<td class="data" style="border-left-width:2px">' . $total . '</td>' . "\n";
 $html .= '      </tr>' . "\n";
 
 $html .= '    </table>' . "\n";
