@@ -36,12 +36,41 @@
           </div>
         </div>
         <div id="clusterSelect">
-          <table class="selector" id="clusterList">
-            <thead>
-            </thead>
-            <tbody>
-            </tbody>
-          </table>
+          <div class="clusterListContainer">
+            <table class="selector" id="clusterListHead">
+              <colgroup>
+                <col class="selectCol">
+                <col class="clusterIdCol">
+                <col class="userCol">
+                <col class="executableCol">
+                <col class="submitDateCol">
+                <col class="jobsCol">
+              </colgroup>
+              <thead>
+                <th>
+                  <input type="checkbox" id="selectAllClusters">
+                </th>
+                <th>ClusterId</th>
+                <th>User</th>
+                <th>Executable</th>
+                <th>Submit date</th>
+                <th>#Jobs</th>
+              </thead>
+            </table>
+          </div>
+          <div class="clusterListContainer">
+            <table class="selector" id="clusterList">
+              <colgroup>
+                <col class="selectCol">
+                <col class="clusterIdCol">
+                <col class="userCol">
+                <col class="executableCol">
+                <col class="submitDateCol">
+                <col class="jobsCol">
+              </colgroup>
+              <tbody>
+              </tbody>
+            </table>
           </div>
         </div>
         <div id="jobSearch">

@@ -1,12 +1,27 @@
-var clusterListHeadWidths = [0.05, 0.15, 0.15, 0.25, 0.25, 0.15];
-var clusterListBodyWidths = [0.05, 0.15, 0.15, 0.25, 0.25];
 var users = {};
 var frontends = {};
 var sites = {};
 var clusters = {};
 var exitcodes = [];
 var jobs = [];
-var yesno = ['No', 'Yes'];
+
+var clusterSearchKeys = {
+    'search': 'clusters',
+    'users': [],
+    'cmds': [],
+    'ids': [],
+    'begin': '',
+    'end': ''
+};
+var jobSearchKeys = {
+    'search': 'jobs',
+    'users': [],
+    'cmds': [],
+    'ids': [],
+    'begin': '',
+    'end': '',
+    'clusterIds': []
+};
 
 var viewNames = ['siteStats', 'timeDistribution', 'jobList'];
 var viewTitles = {
@@ -15,7 +30,6 @@ var viewTitles = {
     'jobList': 'Table'
 };
 
-var jobList = {'widths': [0.05, 0.05, 0.05, 0.1, 0.12, 0.15, 0.23, 0.1, 0.1, 0.05]};
 var siteStats = {'xorigin': 20., 'nmapping': null, 'tmapping': null};
 var timeDistribution = {'xorigin': 5., 'panelHeight': 50., 'topMargin': 0.1, 'bottomMargin': 0.05, 'xmapping': null};
 
@@ -75,33 +89,25 @@ function initPage()
 
     // Set up the cluster table
 
-    var table = d3.select('#clusterList')
-        .style('height', '42px');
+    var clusterSelect = d3.select('#clusterSelect');
+    d3.select('#clusterListHead')
+        .style('width', (clusterSelect.node().clientWidth * 0.96) + 'px');
+    d3.select('#clusterList')
+        .style('width', (clusterSelect.node().clientWidth * 0.96) + 'px');
 
-    var headRow = table.select('thead').append('tr');
-    headRow.append('th')
-        .append('input')
-        .attr({'type': 'checkbox', 'id': 'selectAllClusters'})
+    d3.select('#selectAllClusters')
         .on('change', function () {
                 var check = d3.selectAll('#clusterList tbody tr td.select input');
                 check.property('checked', this.checked);
                 loadJobs();
             });
 
-    headRow.append('th').text('ClusterId');
-    headRow.append('th').text('User');
-    headRow.append('th').text('Executable');
-    headRow.append('th').text('Submit date');
-    headRow.append('th').text('#Jobs');
-
-    setColumnWidths(table, headRow, clusterListHeadWidths);
-
     // Set up static job search interface
 
-    var jobSearchKeys = d3.selectAll('#jobSearch div.jobSearchKey');
-    jobSearchKeys.selectAll('input')
+    var jobSearchFields = d3.selectAll('#jobSearch div.jobSearchKey');
+    jobSearchFields.selectAll('input')
         .on({'keyup': function () { downselect(); updateView(); }, 'change': function () { downselect(); updateView(); }});
-    jobSearchKeys.selectAll('select')
+    jobSearchFields.selectAll('select')
         .on('change', function () { downselect(); updateView(); });
 
     // Set up job views
@@ -125,14 +131,6 @@ function initPage()
 }
 
 var findClusterBlocked = false;
-var clusterSearchKeys = {
-    'search': 'clusters',
-    'users': [],
-    'cmds': [],
-    'ids': [],
-    'begin': '',
-    'end': ''
-};
 
 function findClusters()
 {
@@ -194,14 +192,51 @@ function findClusters()
                     spinner.stop();
                 },
                 'success': function (data, textStatus, jqXHR) {
-                    showClusters(data.clusters);
-                    clusters = {};
-                    for (var x in data.clusters)
-                        clusters[data.clusters[x].id] = data.clusters[x];
-                    spinner.stop();
+                    if (data.many) {
+                        allowAggregateOnly(true);
+                        loadJobs();
+                        spinner.stop();
+                    }
+                    else {
+                        allowAggregateOnly(false);
+                        showClusters(data.clusters);
+                        clusters = {};
+                        for (var x in data.clusters)
+                            clusters[data.clusters[x].id] = data.clusters[x];
+                        loadJobs();
+                        spinner.stop();
+                    }
                 }});
 
     findClusterBlocked = false;
+}
+
+function allowAggregateOnly(allow)
+{
+    if (allow) {
+        var select = d3.select('#clusterSelect');
+        select.selectAll('div.clusterListContainer')
+            .style('display', 'none');
+        select.append('span').classed('message', true)
+            .text('Too many job clusters to display');
+
+        d3.select('#jobList')
+            .style('display', 'none');
+
+        jobSearchKeys.search = 'jobsFromClusters';
+    }
+    else {
+        var select = d3.select('#clusterSelect');
+        select.select('span.message')
+            .remove();
+        select.selectAll('div.clusterListContainer')
+            .style('display', 'block');
+
+        d3.select('#jobList')
+            .style('display', 'block');
+
+        jobSearchKeys.search = 'jobs';
+    }
 }
 
 function showClusters(data)
@@ -213,10 +248,12 @@ function showClusters(data)
     var table = d3.select('#clusterList');
     var tbody = table.select('tbody');
 
+    var container = d3.select(table.node().parentNode);
+
     if (data.length > 7)
-        tbody.style('height', '300px');
+        container.style({'height': '300px', 'overflow-y': 'scroll'});
     else
-        tbody.style('height', (42 * data.length) + 'px');
+        container.style({'height': (42 * data.length) + 'px', 'overflow-y': 'initial'});
 
     var rows = tbody.selectAll('tr')
         .data(data)
@@ -240,15 +277,9 @@ function showClusters(data)
         .text(function (d) { return d.timestamp; });
     rows.append('td')
         .text(function (d) { return d.njobs; });
-
-    setColumnWidths(table, rows, clusterListBodyWidths);
 }
 
 var loadJobsBlocked = false;
-var jobSearchKeys = {
-    'search': 'jobs',
-    'clusterIds': []
-};
 
 function loadJobs()
 {
@@ -265,16 +296,25 @@ function loadJobs()
 
     loadJobsBlocked = true;
 
-    var searchKeys = {
-        'clusterIds': []
-    };
+    var searchKeys = {};
 
-    d3.selectAll('#clusterList tbody input:checked')
-        .each(function () {
-                searchKeys.clusterIds.push(parseInt(this.value));
-            });
+    if (jobSearchKeys.search == 'jobs') {
+        searchKeys.clusterIds = []
 
-    searchKeys.clusterIds.sort();
+        d3.selectAll('#clusterList tbody input:checked')
+            .each(function () {
+                    searchKeys.clusterIds.push(parseInt(this.value));
+                });
+
+        searchKeys.clusterIds.sort();
+    }
+    else {
+        searchKeys.clusterIds = [0]; // allows resetting of job lists
+        for (var k in clusterSearchKeys) {
+            if (k != 'search')
+                searchKeys[k] = clusterSearchKeys[k];
+        }
+    }
 
     if (!compareData(jobSearchKeys, searchKeys)) {
         loadJobsBlocked = false;
@@ -427,6 +467,15 @@ function setupView(id)
         var table = d3.select('#jobList div.viewBody').append('table').classed('selector', true)
             .style({'width': '98%', 'height': '42px'});
 
+        var colWidths = [5, 5, 5, 10, 12, 15, 23, 10, 10, 5];
+
+        table.append('colgroup')
+            .selectAll('col')
+            .data(colWidths)
+            .enter()
+            .append('col')
+            .style('width', function (d) { return d + '%'; });
+
         var thead = table.append('thead');
         table.append('tbody');
 
@@ -443,8 +492,6 @@ function setupView(id)
         headRow.append('th').text('Wallclock time');
         headRow.append('th').text('Exit code');
 
-        setColumnWidths(table, headRow, jobList.widths);
-
         headRow = table.select('thead').append('tr');
 
         headRow.append('th').text('Total');
@@ -458,8 +505,7 @@ function setupView(id)
         headRow.append('th').classed('totalWallTime', true).style('text-align', 'right');
         headRow.append('th');
 
-        setColumnWidths(table, headRow, jobList.widths);
-        headRow.selectAll('th').style({'color': 'black', 'background-color': '#ffffff'});
+        headRow.selectAll('th').style({'color': 'black', 'background-color': '#ffffff', 'border-bottom': '1px dashed'});
     }
 }
 
@@ -524,7 +570,7 @@ function attachData(id)
                 maxW = totals[sid].wall;
         }
 
-        var ymax = sortedSites.length * 5 + 100;
+        var ymax = sortedSites.length * 5 + 60;
         var height = box.node().clientWidth * ymax / 100; // clientWidth -> 1 in svg coordinates
 
         box.style('height', height + 'px');
@@ -701,8 +747,6 @@ function attachData(id)
             .text(function (d) { return d.walltime; });
         rows.append('td')
             .text(function (d) { return d.exitcode == null ? 'Null' : d.exitcode; });
-
-        setColumnWidths(table, rows, jobList.widths);
     }
 }
 
@@ -952,7 +996,7 @@ function updateView(id)
         table.select('tbody').selectAll('tr')
             .each(function (d) {
                     if (d.selected) {
-                        this.style.display = 'block';
+                        this.style.display = 'table-row';
 
                         ++nJobs;
                         totalCPUTime += d.cputime;
