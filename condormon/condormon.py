@@ -115,7 +115,7 @@ else:
 jobData = []
 
 for schedd in schedds:
-    jobAds = schedd.query('True', ['User', 'ClusterId', 'ProcId', 'GlobalJobId', 'JobStartDate', 'RemoteHost', 'LastRemoteHost', 'LastRemotePool', 'JobStatus', 'Cmd', 'Arguments', 'Args', 'MATCH_GLIDEIN_Site', 'BOSCOCluster'])
+    jobAds = schedd.query('True', ['User', 'ClusterId', 'ProcId', 'GlobalJobId', 'JobStartDate', 'RemoteHost', 'LastRemoteHost', 'RemotePool', 'LastRemotePool', 'JobStatus', 'Cmd', 'Arguments', 'Args', 'MATCH_GLIDEIN_Site', 'BOSCOCluster'])
 
     for jobAd in jobAds:
         try:
@@ -148,26 +148,23 @@ for schedd in schedds:
             site_name = ''
     
         try:
-            site_pool = str(jobAd['MATCH_GLIDEIN_SiteWMS_Queue'])
+            remote_slot = str(jobAd['RemoteHost']).lower()
         except KeyError:
-            site_pool = 'Unknown'
-    
-        if site_pool == 'Unknown':
             try:
-                remote_slot = str(jobAd['LastRemoteHost']).lower()
+                remote_slot = str(jobAd['MATCH_GLIDEIN_SiteWMS_Slot'])
             except KeyError:
-                try:
-                    remote_slot = str(jobAd['MATCH_GLIDEIN_SiteWMS_Slot'])
-                except KeyError:
-                    remote_slot = ''
-    
-            remote_node = remote_slot[remote_slot.find('@') + 1:]
-            site_pool = remote_node[remote_node.find('.') + 1:]
+                remote_slot = ''
+
+        remote_node = remote_slot[remote_slot.find('@') + 1:]
+        site_pool = remote_node[remote_node.find('.') + 1:]
 
         try:
-            frontend_name = str(jobAd['LastRemotePool'])
+            frontend_name = str(jobAd['RemotePool'])
         except KeyError:
-            frontend_name = 'Unknown'
+            try:
+                frontend_name = str(jobAd['LastRemotePool'])
+            except KeyError:
+                frontend_name = 'Unknown'
 
         jobDatum = JobData(
             schedd = schedd,
