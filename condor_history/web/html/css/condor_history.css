@@ -76,8 +76,9 @@ div.selectMenu {
     margin-bottom: 5px;
 }
 
-#users {
+#usersBox {
     width: 90%;
+    height: 100px;
 }
 
 #cmds {
@@ -216,12 +217,14 @@ input.time {
     width: 100px;
 }
 
-#sites {
+#sitesBox {
     width: 90%;
+    height: 100px;
 }
 
-#exitcodes {
+#exitcodesBox {
     width: 30%;
+    height: 60px;
 }
 
 .clickable {

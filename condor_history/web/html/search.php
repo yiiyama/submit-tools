@@ -52,7 +52,7 @@ function form_cluster_constraints($users, $cmds, $cids, $begin, $end) {
   $query = '';
 
   if (count($quoted_users) != 0)
-    $query .= sprintf(' AND u.`user_id` IN (%s)', implode(',', $quoted_users));
+    $query .= sprintf(' AND c.`user_id` IN (%s)', implode(',', $quoted_users));
   if (count($quoted_cmds) != 0)
     $query .= sprintf(' AND c.`cmd` IN (%s)', implode(',', $quoted_cmds));
   if (count($quoted_cids) != 0)
@@ -130,9 +130,8 @@ else if ($_REQUEST['search'] == 'clusters') {
     exit(0);
   }
 
-  $query = 'SELECT c.`cluster_id`, u.`user_id`, c.`cmd`, c.`submit_time`, COUNT(j.`proc_id`)';
+  $query = 'SELECT c.`cluster_id`, c.`user_id`, c.`cmd`, c.`submit_time`, COUNT(j.`proc_id`)';
   $query .= ' FROM `job_clusters` AS c';
-  $query .= ' INNER JOIN `users` AS u ON u.`user_id` = c.`user_id`';
   $query .= ' INNER JOIN `jobs` AS j ON (j.`instance`, j.`cluster_id`) = (c.`instance`, c.`cluster_id`)';
   $query .= sprintf(' WHERE c.`instance` = %d', $instance);
   $query .= $constraints;
@@ -169,7 +168,6 @@ else if ($_REQUEST['search'] == 'jobsFromClusters') {
   $query .= ' FROM `jobs` AS j';
   $query .= ' INNER JOIN `sites` AS s ON s.`site_id` = j.`site_id`';
   $query .= ' INNER JOIN `job_clusters` AS c ON (c.`instance`, c.`cluster_id`) = (j.`instance`, j.`cluster_id`)';
-  $query .= ' INNER JOIN `users` AS u ON u.`user_id` = c.`user_id`';
   $query .= sprintf(' WHERE j.`instance` = %d', $instance);
   $query .= $constraints;
   $query .= ' ORDER BY n';
@@ -183,7 +181,6 @@ else if ($_REQUEST['search'] == 'jobsFromClusters') {
   $query = 'SELECT j.`cluster_id`, j.`proc_id`, j.`match_time`, j.`site_id`, j.`cputime`, j.`walltime`, j.`exitcode`';
   $query .= ' FROM `jobs` AS j';
   $query .= ' INNER JOIN `job_clusters` AS c ON (c.`instance`, c.`cluster_id`) = (j.`instance`, j.`cluster_id`)';
-  $query .= ' INNER JOIN `users` AS u ON u.`user_id` = c.`user_id`';
   $query .= sprintf(' WHERE j.`instance` = %d', $instance);
   $query .= $constraints;
   $query .= ' ORDER BY j.`cluster_id`, j.`proc_id`';

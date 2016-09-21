@@ -19,7 +19,7 @@
     <main id="main">
       <section id="search">
         <div id="clusterSearch">
-          <div class="clusterSearchKey">User: <div id="users" class="selectMenu"></div></div>
+          <div class="clusterSearchKey">User: <input type="button" id="allUsers" value="Select All"><div id="usersBox" class="selectMenu"><table id="users"></table></div></div>
           <div class="clusterSearchKey">Commands: <br><input type="text" id="cmds"></div>
           <div class="clusterSearchKey">ClusterIds: <br><input type="text" id="clusterIds"></div>
           <div class="clusterSearchKey">Submit date:
@@ -80,11 +80,11 @@
           <div class="jobSearchKey">CPU Time: <br>
             <input type="text" class="time" id="cpuTimeMin"> s - <input type="text" class="time" id="cpuTimeMax"> s
           </div>
-          <div class="jobSearchKey">Site:
-            <div id="sites" class="selectMenu"></div>
+          <div class="jobSearchKey">Site: <input type="button" id="allSites" value="Select All">
+            <div id="sitesBox" class="selectMenu"><table id="sites"></table></div>
           </div>
-          <div class="jobSearchKey">Exit Code:
-            <div id="exitcodes" class="selectMenu"></div>
+          <div class="jobSearchKey">Exit Code: <input type="button" id="allExitcodes" value="Select All">
+            <div id="exitcodesBox" class="selectMenu"><table id="exitcodes"></table></div>
           </div>
         </div>
       </section>

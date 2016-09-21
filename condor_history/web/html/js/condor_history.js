@@ -54,18 +54,31 @@ function initPage()
 
             frontends = data.frontends;
 
-            var box = d3.select('#users');
-            var lines = addToBox(d3.select('#users'), data.users, 5, 'user');
+            var userRows = d3.select('#users').selectAll('tr')
+                .data(data.users)
+                .enter()
+                .append('tr');
 
-            lines.append('input').attr('type', 'checkbox')
+            userRows.append('td')
+                .append('input')
+                .attr('type', 'checkbox')
                 .property('value', function (d) { return d.id; })
                 .on('change', function () { findClusters(); });
 
-            lines.append('span')
-                .text(function (d) {
-                        return d.name;
-                    });
+            userRows.append('td')
+                .text(function (d) { return d.name; });
             }});
+
+    d3.select('#allUsers')
+        .on('click', function () {
+                var select = (this.value == 'Select All');
+                if (select)
+                    this.value = 'Unselect All';
+                else
+                    this.value = 'Select All';
+                d3.selectAll('#users input').property('checked', select);
+                findClusters();
+            });
 
     // Set up cluster search interface
 
@@ -353,15 +366,19 @@ function setupJobSelectors(data)
       Clear and set up selection elements specific to the current set of jobs.
     */
 
-    d3.select('#sites').selectAll('div.site')
+    d3.select('#sites').selectAll('tr')
         .remove();
 
-    d3.select('#exitcodes').selectAll('div.exitcode')
+    d3.select('#exitcodes').selectAll('tr')
         .remove();
-
-    var lines = addToBox(d3.select('#sites'), data.sites, 5, 'site');
     
-    lines.append('input')
+    var siteRows = d3.select('#sites').selectAll('tr')
+        .data(data.sites)
+        .enter()
+        .append('tr');
+    
+    siteRows.append('td')
+        .append('input')
         .attr('type', 'checkbox')
         .property('value', function (s) { return s.id; })
         .property('checked', true)
@@ -370,12 +387,29 @@ function setupJobSelectors(data)
                 updateView();
             });
 
-    lines.append('span')
+    siteRows.append('td')
         .text(function (s) { return s.name; });
 
-    lines = addToBox(d3.select('#exitcodes'), data.exitcodes, 3, 'exitcode');
+    d3.select('#allSites')
+        .property('value', 'Unselect All')
+        .on('click', function () {
+                var select = (this.value == 'Select All');
+                if (select)
+                    this.value = 'Unselect All';
+                else
+                    this.value = 'Select All';
+                d3.selectAll('#sites input').property('checked', select);
+                downselect();
+                updateView();
+            });
+
+    var codeRows = d3.select('#exitcodes').selectAll('tr')
+        .data(data.exitcodes)
+        .enter()
+        .append('tr');
     
-    lines.append('input')
+    codeRows.append('td')
+        .append('input')
         .attr('type', 'checkbox')
         .property('value', function (c) {
                 if (c == null)
@@ -389,8 +423,21 @@ function setupJobSelectors(data)
                 updateView();
             });
 
-    lines.append('span')
+    codeRows.append('td')
         .text(function (c) { return c == null ? 'Null' : c; });
+
+    d3.select('#allExitcodes')
+        .property('value', 'Unselect All')
+        .on('click', function () {
+                var select = (this.value == 'Select All');
+                if (select)
+                    this.value = 'Unselect All';
+                else
+                    this.value = 'Select All';
+                d3.selectAll('#exitcodes input').property('checked', select);
+                downselect();
+                updateView();
+            });
 }
 
 function toggleView(id)
@@ -1115,7 +1162,7 @@ function exitcodeLegend(legend)
         .data(exitcodes)
         .enter()
         .append('g').classed('legendEntry', true)
-        .attr('transform', function (d, i) { return 'translate(' + ((i % 16) * 4.5 + 2) + ',' + (Math.floor(i / 16) * 1.5) + ')'; });
+        .attr('transform', function (d, i) { return 'translate(' + ((i % 16) * 5 + 2) + ',' + (Math.floor(i / 16) * 1.5) + ')'; });
 
     legendEntries.append('rect').classed('legendColor', true)
         .attr({'width': 1.6, 'height': 1.6})
