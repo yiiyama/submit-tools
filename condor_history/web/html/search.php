@@ -73,9 +73,9 @@ $stmt->execute();
 $stmt->fetch();
 $stmt->close();
 
-$data = array();
-
 if ($_REQUEST['search'] == 'initial') {
+  $data = array();
+
   $data['users'] = array();
   $data['frontends'] = array();
 
@@ -92,8 +92,13 @@ if ($_REQUEST['search'] == 'initial') {
   while ($stmt->fetch())
     $data['frontends'][$fid] = array('id' => $fid, 'name' => $alias);
   $stmt->close();
+
+  echo json_encode($data);
+  exit(0);
 }
 else if ($_REQUEST['search'] == 'clusters') {
+  $data = array();
+
   $data['many'] = false;
   $data['clusters'] = array();
 
@@ -144,17 +149,18 @@ else if ($_REQUEST['search'] == 'clusters') {
   while ($stmt->fetch())
     $data['clusters'][] = array('id' => $cid, 'user' => $uid, 'cmd' => $cmd, 'timestamp' => $timestamp, 'njobs' => $njobs);
   $stmt->close();
+
+  echo json_encode($data);
+  exit(0);
 }
 else if ($_REQUEST['search'] == 'jobsFromClusters') {
-  $data['jobs'] = array();
-  $data['sites'] = array();
-  $data['exitcodes'] = array();
+  $data = array();
 
   $users = $_REQUEST['users'];
   $cmds = $_REQUEST['cmds'];
 
   if (count($users) == 0 && count($cmds) == 0) {
-    echo json_encode($data);
+    echo '{"jobs":[],"sites":[],"exitcodes":[]}';
     exit(0);
   }
 
@@ -162,7 +168,11 @@ else if ($_REQUEST['search'] == 'jobsFromClusters') {
   $begin = $_REQUEST['begin'];
   $end = $_REQUEST['end'];
 
+  $json = '{';
+
   $constraints = form_cluster_constraints($users, $cmds, $cids, $begin, $end);
+
+  $sites_data = array();
 
   $query = 'SELECT DISTINCT s.`site_id`, CONCAT_WS(\'/\', s.`site_name`, s.`site_pool`) AS n, s.`frontend_id`';
   $query .= ' FROM `jobs` AS j';
@@ -176,7 +186,12 @@ else if ($_REQUEST['search'] == 'jobsFromClusters') {
   $stmt->bind_result($sid, $name, $fid);
   $stmt->execute();
   while ($stmt->fetch())
-    $data['sites'][] = array('id' => $sid, 'name' => $name, 'frontend' => $fid);
+    $sites_data[] = '{"id":' . $sid . ',"name":"' . $name . '","frontend":' . $fid . '}';
+
+  $json .= '"sites":[' . implode(',', $sites_data) . '],';
+
+  $jobs_data = array();
+  $codes_data = array();
 
   $query = 'SELECT j.`cluster_id`, j.`proc_id`, j.`match_time`, j.`site_id`, j.`cputime`, j.`walltime`, j.`exitcode`';
   $query .= ' FROM `jobs` AS j';
@@ -189,38 +204,37 @@ else if ($_REQUEST['search'] == 'jobsFromClusters') {
   $stmt->bind_result($cid, $pid, $match_time, $sid, $cputime, $walltime, $exitcode);
   $stmt->execute();
   while ($stmt->fetch()) {
-    $data['jobs'][] = array('cid' => $cid,
-                            'pid' => $pid,
-                            'matchTime' => $match_time,
-                            'site' => $sid,
-                            'cputime' => $cputime,
-                            'walltime' => $walltime,
-                            'exitcode' => $exitcode,
-                            'selected' => true
-                            );
+    $jobs_data[] = '{"cid":' . $cid . ',"pid":' . $pid . ',"matchTime":"' . $match_time . '","site":' . $sid . ',"cputime":' . $cputime . ',"walltime":' . $walltime . ',"exitcode":' . $exitcode . ',"selected":true}';
 
-    if (!in_array($exitcode, $data['exitcodes']))
-      $data['exitcodes'][] = $exitcode;
+    if (!in_array($exitcode, $codes_data))
+      $codes_data[] = $exitcode;
   }
   $stmt->close();
 
-  sort($data['exitcodes']);
-  if (count($data['exitcodes']) != 0 && $data['exitcodes'][0] === NULL) {
-    array_shift($data['exitcodes']);
-    $data['exitcodes'][] = NULL;
+  sort($codes_data);
+  if (count($codes_data) != 0 && $codes_data[0] === NULL) {
+    array_shift($codes_data);
+    $codes_data[] = NULL;
   }
+
+  $json .= '"jobs":[' . implode(',', $jobs_data) . '],';
+  $json .= '"exitcodes":[' . implode(',', $codes_data) . ']';
+  $json .= '}';
+
+  echo $json;
+  exit(0);
 }
 else if ($_REQUEST['search'] == 'jobs') {
-  $data['jobs'] = array();
-  $data['sites'] = array();
-  $data['exitcodes'] = array();
-
   $cluster_ids = $_REQUEST['clusterIds'];
 
   if (count($cluster_ids) == 0) {
-    echo json_encode($data);
+    echo '{"jobs":[],"sites":[],"exitcodes":[]}';
     exit(0);
   }
+
+  $json = '{';
+
+  $sites_data = array();
 
   $query = 'SELECT DISTINCT s.`site_id`, CONCAT_WS(\'/\', s.`site_name`, s.`site_pool`) AS n, s.`frontend_id` FROM `jobs` AS j INNER JOIN `sites` AS s ON s.`site_id` = j.`site_id`';
   $query .= sprintf(' WHERE j.`instance` = %d', $instance);
@@ -231,7 +245,12 @@ else if ($_REQUEST['search'] == 'jobs') {
   $stmt->bind_result($sid, $name, $fid);
   $stmt->execute();
   while ($stmt->fetch())
-    $data['sites'][] = array('id' => $sid, 'name' => $name, 'frontend' => $fid);
+    $sites_data[] = '{"id":' . $sid . ',"name":"' . $name . '","frontend":' . $fid . '}';
+
+  $json .= '"sites":[' . implode(',', $sites_data) . '],';
+
+  $jobs_data = array();
+  $codes_data = array();
 
   $query = 'SELECT `cluster_id`, `proc_id`, `match_time`, `site_id`, `cputime`, `walltime`, `exitcode` FROM `jobs`';
   $query .= sprintf(' WHERE `instance` = %d', $instance);
@@ -242,28 +261,25 @@ else if ($_REQUEST['search'] == 'jobs') {
   $stmt->bind_result($cid, $pid, $match_time, $sid, $cputime, $walltime, $exitcode);
   $stmt->execute();
   while ($stmt->fetch()) {
-    $data['jobs'][] = array('cid' => $cid,
-                            'pid' => $pid,
-                            'matchTime' => $match_time,
-                            'site' => $sid,
-                            'cputime' => $cputime,
-                            'walltime' => $walltime,
-                            'exitcode' => $exitcode,
-                            'selected' => true
-                            );
+    $jobs_data[] = '{"cid":' . $cid . ',"pid":' . $pid . ',"matchTime":"' . $match_time . '","site":' . $sid . ',"cputime":' . $cputime . ',"walltime":' . $walltime . ',"exitcode":' . $exitcode . ',"selected":true}';
 
-    if (!in_array($exitcode, $data['exitcodes']))
-      $data['exitcodes'][] = $exitcode;
+    if (!in_array($exitcode, $codes_data))
+      $codes_data[] = $exitcode;
   }
   $stmt->close();
 
-  sort($data['exitcodes']);
-  if (count($data['exitcodes']) != 0 && $data['exitcodes'][0] === NULL) {
-    array_shift($data['exitcodes']);
-    $data['exitcodes'][] = NULL;
+  sort($codes_data);
+  if (count($codes_data) != 0 && $codes_data[0] === NULL) {
+    array_shift($codes_data);
+    $codes_data[] = NULL;
   }
-}
 
-echo json_encode($data);
+  $json .= '"jobs":[' . implode(',', $jobs_data) . '],';
+  $json .= '"exitcodes":[' . implode(',', $codes_data) . ']';
+  $json .= '}';
+
+  echo $json;
+  exit(0);
+}
 
 ?>
