@@ -1,41 +1,30 @@
 <?php
-/*LOCAL CONFIG*/
 $rrdpath = '/var/run/condormon';
 $title = 'subMIT current job status';
-$columns = array(
-                 'Running (MIT)' => array('T2_US_MIT', 'T3_US_MIT', 'EAPS'),
-                 'Running (OSG)' => NULL,
-                 'Running (USCMS)' => NULL,
-                 'Idle' => NULL,
-                 'Held' => NULL
-                 );
-/*LOCAL CONFIG*/
+$rrdcolumns = array('running-t2', 'running-t3', 'running-eaps', 'running-osg', 'running-uscms', 'idle', 'held');
 
-$colgroups = array('Running (MIT)', 'Running (OSG)', 'Running (USCMS)', 'Idle', 'Held');
-
-$ncols = 0;
-foreach($colgroups as $g) {
-  if (is_null($columns[$g]))
-    $ncols += 1;
-  else
-    $ncols += count($columns[$g]);
-}
-
-function lastEntry($rrd) {
+function lastEntry($rrd)
+{
   global $rrdpath;
-  global $ncols;
+  global $rrdcolumns;
+
+  $ncols = count($rrdcolumns);
 
   $last = rrd_last($rrdpath . '/' . $rrd);
   $options = array('LAST', sprintf('--start=%d', $last - 1), sprintf('--end=%d', $last - 1));
   $dump = rrd_fetch($rrdpath . '/' . $rrd, $options, count($options));
   if (isset($dump['data']) && count($dump['data']) >= $ncols) {
     $chunks = array_chunk($dump['data'], $ncols);
-    $entries = $chunks[0];
+    $entry = $chunks[0];
   }
   else
-    $entries = array_fill(0, $ncols, 0);
+    $entry = array_fill(0, $ncols, 0);
 
-  return $entries;
+  $mapped = array();
+  foreach ($entry as $i => $d)
+    $mapped[$rrdcolumns[$i]] = $d;
+
+  return $mapped;
 }
 
 $rrds = array();
@@ -65,10 +54,12 @@ $html .= 'tr {' . "\n";
 $html .= '  border:1px solid black;' . "\n";
 $html .= '}' . "\n";
 $html .= 'th {' . "\n";
+$html .= '  width:90px;' . "\n";
 $html .= '  background-color:#cccccc;' . "\n";
 $html .= '  border:1px solid black;' . "\n";
 $html .= '}' . "\n";
 $html .= 'td {' . "\n";
+$html .= '  width:90px;' . "\n";
 $html .= '  border:1px solid black;' . "\n";
 $html .= '}' . "\n";
 $html .= 'tr.odd {' . "\n";
@@ -77,8 +68,19 @@ $html .= '}' . "\n";
 $html .= 'tr.even {' . "\n";
 $html .= '  background-color:#ffffff;' . "\n";
 $html .= '}' . "\n";
-$html .= 'td.data {' . "\n";
+$html .= 'tr.total {' . "\n";
+$html .= '  border-top:2px solid;' . "\n";
+$html .= '}' . "\n";
+$html .= 'td {' . "\n";
 $html .= '  text-align:right;' . "\n";
+$html .= '}' . "\n";
+$html .= 'td.user,th.user {' . "\n";
+$html .= '  width:100px;' . "\n";
+$html .= '  text-align:left;' . "\n";
+$html .= '  border-right:2px solid;' . "\n";
+$html .= '}' . "\n";
+$html .= 'td.total,th.total {' . "\n";
+$html .= '  border-left:2px solid;' . "\n";
 $html .= '}' . "\n";
 $html .= 'div.graphs {' . "\n";
 $html .= '  width:810px;' . "\n";
@@ -95,49 +97,23 @@ $html .= '    <meta http-equiv="refresh" content="300">' . "\n";
 $html .= '  </head>' . "\n";
 $html .= '  <body>' . "\n";
 $html .= '    <table>' . "\n";
-$html .= '      <colgroup>' . "\n";
-$html .= '        <col style="width:100px;">' . "\n";
-for ($i = 0; $i != $ncols; ++$i)
-  $html .= '        <col style="width:80px;">' . "\n";
-$html .= '        <col style="width:100px;border-left:2px solid;">' . "\n";
-$html .= '      <colgroup>' . "\n";
-
-if ($ncols == 3) {
-  // no column groups
-  $html .= '      <tr>' . "\n";
-  $html .= '        <th>User</th>';
-  foreach ($colgroups as $g)
-    $html .= '<th>' . $g . '</th>';
-  $html .= '<th>Total</th>' . "\n";
-  $html .= '      </tr>' . "\n";
-}
-else {
-  $html .= '      <tr>' . "\n";
-  $html .= '        <th rowspan="2">User</th>';
-  foreach ($colgroups as $g) {
-    if (is_null($columns[$g]))
-      $html .= '<th rowspan="2">' . $g . '</th>';
-    else
-      $html .= '<th colspan="' . count($columns[$g]) . '">' . $g . '</th>';
-  }
-  $html .= '<th rowspan="2">Total</th>' . "\n";
-  $html .= '      </tr>' . "\n";
-  $html .= '      <tr>' . "\n";
-  $html .= '        ';
-  foreach ($colgroups as $g) {
-    if (!is_null($columns[$g])) {
-      foreach ($columns[$g] as $c)
-        $html .= '<th>' . $c . '</th>';
-    }
-  }
-  $html .= "\n";
-  $html .= '      </tr>' . "\n";
-}
+$html .= '      <tr>' . "\n";
+$html .= '        <th rowspan="3" class="user">User</th><th rowspan="3">Idle</th><th rowspan="3">Held</th><th rowspan="3" style="border-right:none;">Running</th><th colspan="5" style="border-left:none;">&nbsp;</th><th rowspan="3" class="total">Total</th>' . "\n";
+$html .= '      </tr>' . "\n";
+$html .= '      <tr>' . "\n";
+$html .= '        <th colspan="3">MIT</th><th rowspan="2">OSG</th><th rowspan="2">USCMS</th>' . "\n";
+$html .= '      </tr>' . "\n";
+$html .= '      <tr>' . "\n";
+$html .= '        <th>T2_US_MIT</th><th>T3_US_MIT</th><th>EAPS</th>' . "\n";
+$html .= '      </tr>' . "\n";
 
 $images = '';
 
 $irow = 0;
-$colTotal = array_fill(0, $ncols, 0);
+$colTotal = array();
+foreach ($rrdcolumns as $key)
+  $colTotal[$key] = 0;
+
 $total = 0;
 foreach ($rrds as $rrd) {
   $user = str_replace('.rrd', '', $rrd);
@@ -145,6 +121,19 @@ foreach ($rrds as $rrd) {
     continue;
 
   $lastEntry = lastEntry($rrd);
+
+  $userTotal = (int)array_sum($lastEntry);
+  if ($userTotal < 0)
+    $userTotal = 0;
+
+  $runTotal = $userTotal - $lastEntry['idle'] - $lastEntry['held'];
+  if ($runTotal < 0)
+    $runTotal = 0;
+
+  $total += $userTotal;
+
+  foreach ($rrdcolumns as $key)
+    $colTotal[$key] += $lastEntry[$key];
   
   $html .= '      <tr class="';
   if ($irow % 2 == 0)
@@ -152,18 +141,16 @@ foreach ($rrds as $rrd) {
   else
     $html .= 'odd';
   $html .= '">' . "\n";
-  $html .= '        <td><a href="jobs/' . $user . '.txt">' . $user . '</a></td>';
-  foreach ($lastEntry as $i => $count) {
-    if ($count < 0)
-      $count = 0;
-    $html .= '<td class="data">' . ((int)$count) . '</td>';
-    $colTotal[$i] += $count;
-  }
-  $userTotal = (int)array_sum($lastEntry);
-  if ($userTotal < 0)
-    $userTotal = 0;
-  $total += $userTotal;
-  $html .= '<td class="data" style="border-left-width:2px">' . $userTotal . '</td>' . "\n";
+  $html .= '        <td class="user"><a href="jobs/' . $user . '.txt">' . $user . '</a></td>';
+  $html .= '<td>' . $lastEntry['idle'] . '</td>';
+  $html .= '<td>' . $lastEntry['held'] . '</td>';
+  $html .= '<td>' . $runTotal . '</td>';
+  $html .= '<td>' . $lastEntry['running-t2'] . '</td>';
+  $html .= '<td>' . $lastEntry['running-t3'] . '</td>';
+  $html .= '<td>' . $lastEntry['running-eaps'] . '</td>';
+  $html .= '<td>' . $lastEntry['running-osg'] . '</td>';
+  $html .= '<td>' . $lastEntry['running-uscms'] . '</td>';
+  $html .= '<td class="total">' . $userTotal . '</td>' . "\n";
   $html .= '      </tr>' . "\n";
 
   $images .= '    <div class="graphs">' . "\n";
@@ -175,18 +162,28 @@ foreach ($rrds as $rrd) {
   ++$irow;
 }
 
+$runTotal = $total - $colTotal['idle'] - $colTotal['held'];
+if ($runTotal < 0)
+  $runTotal = 0;
+
+$html .= '      <tr class="total">' . "\n";
+$html .= '        <td class="user">Total</td>';
+$html .= '<td>' . $colTotal['idle'] . '</td>';
+$html .= '<td>' . $colTotal['held'] . '</td>';
+$html .= '<td>' . $runTotal . '</td>';
+$html .= '<td>' . $colTotal['running-t2'] . '</td>';
+$html .= '<td>' . $colTotal['running-t3'] . '</td>';
+$html .= '<td>' . $colTotal['running-eaps'] . '</td>';
+$html .= '<td>' . $colTotal['running-osg'] . '</td>';
+$html .= '<td>' . $colTotal['running-uscms'] . '</td>';
+$html .= '<td class="total">' . $total . '</td>' . "\n";
+$html .= '      </tr>' . "\n";
+
 $images .= '    <div class="graphs">' . "\n";
 $images .= '      <div class="username">Total</div>' . "\n";
 $images .= '      <img src="imgs/Total_2h.png">' . "\n";
 $images .= '      <img src="imgs/Total_1d.png">' . "\n";
 $images .= '    </div>' . "\n";
-
-$html .= '      <tr style="border-top-width:2px;">' . "\n";
-$html .= '        <td>Total</td>';
-foreach ($colTotal as $ct)
-  $html .= '<td class="data">' . $ct . '</td>';
-$html .= '<td class="data" style="border-left-width:2px">' . $total . '</td>' . "\n";
-$html .= '      </tr>' . "\n";
 
 $html .= '    </table>' . "\n";
 $html .= $images;
