@@ -1166,7 +1166,7 @@ function exitcodeLegend(legend)
 
     legendEntries.append('rect').classed('legendColor', true)
         .attr({'width': 1.6, 'height': 1.6})
-        .attr('fill', function (d) { return colors[d % 16]; });
+        .attr('fill', function (d) { return d === null ? '#333333' : colors[d % 16]; });
 
     legendEntries.append('text').classed('legendText', true)
         .attr({'transform': 'translate(1.8,0)', 'font-size': 1.6, 'dy': '0.8em'})

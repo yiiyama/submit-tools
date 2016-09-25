@@ -193,7 +193,7 @@ else if ($_REQUEST['search'] == 'jobsFromClusters') {
   $jobs_data = array();
   $codes_data = array();
 
-  $query = 'SELECT j.`cluster_id`, j.`proc_id`, j.`match_time`, j.`site_id`, j.`cputime`, j.`walltime`, j.`exitcode`';
+  $query = 'SELECT j.`cluster_id`, j.`proc_id`, j.`match_time`, j.`site_id`, j.`cputime`, j.`walltime`, IF(j.`exitcode` IS NULL, \'null\', j.`exitcode`)';
   $query .= ' FROM `jobs` AS j';
   $query .= ' INNER JOIN `job_clusters` AS c ON (c.`instance`, c.`cluster_id`) = (j.`instance`, j.`cluster_id`)';
   $query .= sprintf(' WHERE j.`instance` = %d', $instance);
@@ -212,9 +212,9 @@ else if ($_REQUEST['search'] == 'jobsFromClusters') {
   $stmt->close();
 
   sort($codes_data);
-  if (count($codes_data) != 0 && $codes_data[0] === NULL) {
+  if (count($codes_data) != 0 && $codes_data[0] === 'null') {
     array_shift($codes_data);
-    $codes_data[] = NULL;
+    $codes_data[] = 'null';
   }
 
   $json .= '"jobs":[' . implode(',', $jobs_data) . '],';
@@ -252,7 +252,7 @@ else if ($_REQUEST['search'] == 'jobs') {
   $jobs_data = array();
   $codes_data = array();
 
-  $query = 'SELECT `cluster_id`, `proc_id`, `match_time`, `site_id`, `cputime`, `walltime`, `exitcode` FROM `jobs`';
+  $query = 'SELECT `cluster_id`, `proc_id`, `match_time`, `site_id`, `cputime`, `walltime`, IF(`exitcode` IS NULL, \'null\', `exitcode`) FROM `jobs`';
   $query .= sprintf(' WHERE `instance` = %d', $instance);
   $query .= sprintf(' AND `cluster_id` IN (%s)', implode(',', $cluster_ids));
   $query .= ' ORDER BY `cluster_id`, `proc_id`';
@@ -269,9 +269,9 @@ else if ($_REQUEST['search'] == 'jobs') {
   $stmt->close();
 
   sort($codes_data);
-  if (count($codes_data) != 0 && $codes_data[0] === NULL) {
+  if (count($codes_data) != 0 && $codes_data[0] === 'null') {
     array_shift($codes_data);
-    $codes_data[] = NULL;
+    $codes_data[] = 'null';
   }
 
   $json .= '"jobs":[' . implode(',', $jobs_data) . '],';
