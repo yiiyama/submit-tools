@@ -37,7 +37,7 @@ SCHEDD_ADS = None
 # RRD config
 
 JOB_COUNTERS = ['running-t2', 'running-t3', 'running-eaps', 'running-osg', 'running-uscms', 'idle', 'held']
-COUNTER_TITLES = [('T2_US_MIT', '33ff66'), ('T3_US_MIT', '33ffcc'), ('EAPS', 'ccff33'), ('OSG', 'b88a00'), ('USCMS', 'ff6633'), ('Idle', '3366ff'), ('Held', 'ff3366')]
+COUNTER_TITLES = [('T2_US_MIT', '789e5b'), ('T3_US_MIT', 'deaa39'), ('EAPS', '72c2d6'), ('OSG', 'db773b'), ('USCMS', 'c8493d'), ('Idle', '2665b0'), ('Held', '9a4299')]
 ADD_MAX_SLOTS = False
 STARTD_CONSTRAINTS = 'True'
 
