@@ -23,15 +23,20 @@ var jobSearchKeys = {
     'clusterIds': []
 };
 
-var viewNames = ['siteStats', 'timeDistribution', 'jobList'];
+var viewNames = ['siteStats', 'dayByDay', 'timeDistribution', 'jobList'];
 var viewTitles = {
     'siteStats': 'Jobs by Site',
+    'dayByDay': 'History',
     'timeDistribution': 'CPU and Wall Time Distribution',
     'jobList': 'Table'
 };
 
 var siteStats = {'xorigin': 20., 'nmapping': null, 'tmapping': null};
+var dayByDay = {'xorigin': 10., 'jobMap': [], 'xmapping': null, 'ymapping': null, 'panelHeight': 20., 'topMargin': 0.1, 'bottomMargin': 0.1};
 var timeDistribution = {'xorigin': 5., 'panelHeight': 50., 'topMargin': 0.1, 'bottomMargin': 0.05, 'xmapping': null};
+
+var exitCodesPerRow = 16;
+var sitesPerRow = 4;
 
 String.prototype.strcmp = function (s) {
     if (this < s) return -1;
@@ -230,6 +235,7 @@ function allowAggregateOnly(allow)
         var select = d3.select('#clusterSelect');
         select.selectAll('div.clusterListContainer')
             .style('display', 'none');
+        select.select('span.message').remove();
         select.append('span').classed('message', true)
             .text('Too many job clusters to display');
 
@@ -486,6 +492,19 @@ function setupView(id)
 
         canvas.append('g').classed('graphArea', true);
     }
+    else if (id == 'dayByDay') {
+        var canvas = d3.select('#dayByDay div.viewBody')
+            .append('svg');
+
+        canvas.style('width', '100%');
+
+        canvas.append('g').classed('legendArea', true)
+            .append('g').classed('legend', true)
+            .attr('transform', 'translate(' + dayByDay.xorigin + ',1)')
+            .append('text').classed('legendTitle', true);
+
+        canvas.append('g').classed('graphArea', true);
+    }
     else if (id == 'timeDistribution') {
         var box = d3.select('#timeDistribution div.viewBody')
             .style('height', (timeDistribution.panelHeight * 2 + 10));
@@ -535,8 +554,8 @@ function setupView(id)
         headRow.append('th').text('Start date');
         headRow.append('th').text('Frontend');
         headRow.append('th').text('Site');
-        headRow.append('th').text('CPU time');
-        headRow.append('th').text('Wallclock time');
+        headRow.append('th').text('CPU time (s)');
+        headRow.append('th').text('Wallclock time (s)');
         headRow.append('th').text('Exit code');
 
         headRow = table.select('thead').append('tr');
@@ -578,17 +597,17 @@ function attachData(id)
         graphArea.selectAll('g.axis')
             .remove();
 
-        graphArea.attr('transform', 'translate(0,' + (3 * Math.floor(exitcodes.length / 16) + 2) + ')');
+        graphArea.attr('transform', 'translate(0,' + (3 * Math.floor(exitcodes.length / exitCodesPerRow) + 2) + ')');
 
         var totals = {};
         for (var i = 0; i != jobs.length; ++i) {
             var job = jobs[i];
             if (totals[job.site] === undefined)
-                totals[job.site] = {'n': 1, 'cpu': job.cputime, 'wall': job.walltime};
+                totals[job.site] = {'n': 1, 'cpu': job.cputime / 3600., 'wall': job.walltime / 3600.};
             else {
                 totals[job.site].n += 1;
-                totals[job.site].cpu += job.cputime;
-                totals[job.site].wall += job.walltime;
+                totals[job.site].cpu += job.cputime / 3600.;
+                totals[job.site].wall += job.walltime / 3600.;
             }
         }
 
@@ -654,7 +673,7 @@ function attachData(id)
             .call(taxis)
             .append('text').classed('axisTitle', true)
             .attr({'font-size': 0.8, 'text-anchor': 'end', 'dx': '-1em'})
-            .text('Time (s)');
+            .text('Time (h)');
 
         graphArea.selectAll('g.horizontal').selectAll('g.tick text')
             .attr('y', -1.);
@@ -704,6 +723,97 @@ function attachData(id)
         graphArea.selectAll('text.barKey')
             .attr('font-size', 0.6);
     }
+    else if (target.dayByDay) {
+        var canvas = d3.select('#dayByDay div.viewBody').select('svg');
+
+        var legend = canvas.select('g.legendArea g.legend');
+
+        siteLegend(legend);
+
+        var nLegRows = Math.floor(legend.selectAll('g.legendEntry').size() / sitesPerRow);
+
+        canvas.attr('viewBox', '0 0 100 ' + (dayByDay.panelHeight + nLegRows * 2 + 5));
+
+        var graphArea = canvas.select('g.graphArea');
+
+        graphArea.attr('transform', 'translate(0,' + (nLegRows * 2 + 5) + ')');
+
+        var begin = new Date(d3.select('#submitBegin').property('value'));
+        var end = d3.time.day.offset(new Date(d3.select('#submitEnd').property('value')), 1);
+        var days = d3.time.day.range(begin, end);
+
+        dayByDay.jobMap = [];
+        for (var x in days)
+            dayByDay.jobMap.push([]);
+
+        for (var x in jobs) {
+            var job = jobs[x];
+            var jobDate = new Date(job.matchTime.replace('-', '/').replace('-', '/'));
+            var iD = Math.floor((jobDate - begin) / 1000 / 60 / 60 / 24);
+            if (iD >= days.length)
+                iD = days.length - 1;
+            dayByDay.jobMap[iD].push(job);
+        }
+
+        var maxT = 0;
+        for (var x in dayByDay.jobMap) {
+            var dayJobs = dayByDay.jobMap[x];
+            var sum = 0;
+            for (var y in dayJobs)
+                sum += dayJobs[y].cputime / 3600.;
+            if (sum > maxT)
+                maxT = sum;
+        }
+
+        var graphHeight = dayByDay.panelHeight * (1 - dayByDay.topMargin - dayByDay.bottomMargin);
+
+        graphArea.selectAll('g.axis')
+            .remove();
+
+        dayByDay.ymapping = d3.scale.linear()
+            .domain([0, maxT * 1.05])
+            .range([graphHeight, 0]);
+
+        var yaxis = d3.svg.axis()
+            .scale(dayByDay.ymapping)
+            .orient('left')
+            .tickSize(0.6, 1);
+
+        var gyaxis = graphArea.append('g').classed('axis yaxis', true)
+            .attr('transform', 'translate(' + dayByDay.xorigin + ',' + (dayByDay.panelHeight * dayByDay.topMargin) + ')')
+            .call(yaxis)
+            .append('text').classed('axisTitle', true)
+            .attr({'font-size': 0.8, 'text-anchor': 'end', 'dx': '-1em'})
+            .text('CPU hours');
+
+        var xmapping = d3.time.scale()
+            .domain([begin, end])
+            .range([0., (100 - dayByDay.xorigin - 5)]);
+       
+        var xaxis = d3.svg.axis()
+            .scale(xmapping)
+            .orient('bottom')
+            .ticks(d3.time.day)
+            .tickSize(0.6, 1);
+
+        var gxaxis = graphArea.append('g').classed('axis xaxis', true)
+            .attr('transform', 'translate(' + dayByDay.xorigin + ',' + (dayByDay.panelHeight * (1 - dayByDay.bottomMargin)) + ')')
+            .call(xaxis);
+
+        formatAxes(graphArea);
+
+        var dayw = (95 - dayByDay.xorigin) / days.length;
+
+        gxaxis.selectAll('g.tick text')
+            .attr({'x': 0.45 * dayw, 'y': 1.8, 'dy': 0});
+
+        graphArea.selectAll('g.dayData').remove();
+        var dayData = graphArea.selectAll('g.dayData')
+            .data(days)
+            .enter()
+            .append('g').classed('dayData', true)
+            .attr('transform', function (d) { return 'translate(' + (dayByDay.xorigin + xmapping(d)) + ',' + (dayByDay.panelHeight * (1 - dayByDay.bottomMargin)) + ')'; });
+    }
     else if (target.timeDistribution) {
         var canvas = d3.select('#timeDistribution div.viewBody').select('svg');
 
@@ -713,7 +823,7 @@ function attachData(id)
 
         var graphArea = canvas.select('g.graphArea');
 
-        graphArea.attr('transform', 'translate(0,' + (3 * Math.floor(exitcodes.length / 16) + 2) + ')');
+        graphArea.attr('transform', 'translate(0,' + (3 * Math.floor(exitcodes.length / exitCodesPerRow) + 2) + ')');
 
         var maxCPUJob = d3.max(jobs, function (j) { return j.cputime; });
         var maxWallJob = d3.max(jobs, function (j) { return j.walltime; });
@@ -886,8 +996,8 @@ function updateView(id)
 
             var site = sites[job.site];
             site.code[job.exitcode].n += 1;
-            site.code[job.exitcode].cputime += job.cputime;
-            site.code[job.exitcode].walltime += job.walltime;
+            site.code[job.exitcode].cputime += job.cputime / 3600.;
+            site.code[job.exitcode].walltime += job.walltime / 3600.;
         }
 
         var ncumul = {};
@@ -919,7 +1029,7 @@ function updateView(id)
 
         for (var x in exitcodes) {
             var code = exitcodes[x];
-            var color = code == null ? '#333333' : colors[code % 16];
+            var color = code == null ? '#333333' : colors[code % NCOLORS];
 
             jobBars.append('rect').classed('bar', true)
                 .attr('width', function (s) { return siteStats.nmapping(s.code[code].n); })
@@ -939,6 +1049,51 @@ function updateView(id)
 
         graphArea.selectAll('rect.bar')
             .attr('height', 1);
+    }
+    else if (target.dayByDay) {
+        var canvas = d3.select('#dayByDay div.viewBody').select('svg');
+        var graphArea = canvas.select('g.graphArea');
+
+        var dayData = graphArea.selectAll('g.dayData');
+
+        var dayw = (95 - dayByDay.xorigin) / dayData.size();
+        var graphHeight = dayByDay.panelHeight * (1 - dayByDay.topMargin - dayByDay.bottomMargin);
+
+        var sortedSites = d3.keys(sites).sort();
+
+        dayData.each(function (d, iday) {
+                var cputimes = {};
+                for (var s in sites)
+                    cputimes[s] = 0.;
+
+                for (var x in dayByDay.jobMap[iday]) {
+                    var job = dayByDay.jobMap[iday][x];
+                    if (!job.selected)
+                        continue;
+
+                    cputimes[job.site] += job.cputime / 3600.;
+                }
+                
+                var cputimesarr = [];
+                for (var x in sortedSites)
+                    cputimesarr.push(cputimes[sortedSites[x]]);
+
+                var totals = [0];
+                for (var x in cputimesarr) {
+                    var prev = totals[x];
+                    totals.push(prev + cputimesarr[x]);
+                }
+                totals.shift();
+
+                d3.select(this).selectAll('rect.bar')
+                    .data(cputimesarr)
+                    .enter()
+                    .append('rect').classed('bar', true)
+                    .attr('width', dayw * 0.9)
+                    .attr('height', function (d) { return (graphHeight - dayByDay.ymapping(d)); })
+                    .attr('transform', function (d, isite) { return 'translate(' + (dayw * 0.05) + ',' + (dayByDay.ymapping(totals[isite]) - graphHeight) + ')'})
+                    .attr('fill', function (d, isite) { return colors[isite % NCOLORS]; });
+            });
     }
     else if (target.timeDistribution) {
         var canvas = d3.select('#timeDistribution div.viewBody').select('svg');
@@ -1028,7 +1183,7 @@ function updateView(id)
                     .append('g').classed('bin', true)
                     .attr('transform', function (d, i) { return 'translate(' + (xwidth * i) + ',' + -ymapping(totals[i]) + ')'; })
                     .append('rect').classed('bar', true)
-                    .attr({'width': xwidth, 'fill': colors[code % 16]})
+                    .attr({'width': xwidth, 'fill': colors[code % NCOLORS]})
                     .attr('height', function (d) { return ymapping(d); });
             }
         }
@@ -1162,13 +1317,37 @@ function exitcodeLegend(legend)
         .data(exitcodes)
         .enter()
         .append('g').classed('legendEntry', true)
-        .attr('transform', function (d, i) { return 'translate(' + ((i % 16) * 5 + 2) + ',' + (Math.floor(i / 16) * 1.5) + ')'; });
+        .attr('transform', function (d, i) { return 'translate(' + ((i % exitCodesPerRow) * 5 + 2) + ',' + (Math.floor(i / exitCodesPerRow) * 2) + ')'; });
 
     legendEntries.append('rect').classed('legendColor', true)
         .attr({'width': 1.6, 'height': 1.6})
-        .attr('fill', function (d) { return d === null ? '#333333' : colors[d % 16]; });
+        .attr('fill', function (d) { return d === null ? '#333333' : colors[d % NCOLORS]; });
 
     legendEntries.append('text').classed('legendText', true)
         .attr({'transform': 'translate(1.8,0)', 'font-size': 1.6, 'dy': '0.8em'})
         .text(function (d) { return d === null ? 'Null' : d; });
+}
+
+function siteLegend(legend)
+{
+    legend.select('text.legendTitle')
+        .attr({'font-size': 0.8, 'dy': '0.8em', 'x': -0.5, 'y': 0, 'text-anchor': 'end'})
+        .text('Sites:');
+
+    legend.selectAll('g.legendEntry')
+        .remove();
+
+    var legendEntries = legend.selectAll('g.legendEntry')
+        .data(d3.values(sites))
+        .enter()
+        .append('g').classed('legendEntry', true)
+        .attr('transform', function (d, i) { return 'translate(' + ((i % sitesPerRow) * 20 + 2) + ',' + (Math.floor(i / sitesPerRow) * 2) + ')'; });
+
+    legendEntries.append('rect').classed('legendColor', true)
+        .attr({'width': 1.6, 'height': 1.6})
+        .attr('fill', function (d, i) { return colors[i % NCOLORS]; });
+
+    legendEntries.append('text').classed('legendText', true)
+        .attr({'transform': 'translate(1.8,0)', 'font-size': 0.8, 'dy': '0.8em'})
+        .text(function (d) { return d.name; });
 }

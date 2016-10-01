@@ -249,7 +249,6 @@ else if ($_REQUEST['search'] == 'jobs') {
 
   $json .= '"sites":[' . implode(',', $sites_data) . '],';
 
-  $jobs_data = array();
   $codes_data = array();
 
   $query = 'SELECT `cluster_id`, `proc_id`, `match_time`, `site_id`, `cputime`, `walltime`, IF(`exitcode` IS NULL, \'null\', `exitcode`) FROM `jobs`';
@@ -257,16 +256,22 @@ else if ($_REQUEST['search'] == 'jobs') {
   $query .= sprintf(' AND `cluster_id` IN (%s)', implode(',', $cluster_ids));
   $query .= ' ORDER BY `cluster_id`, `proc_id`';
 
+  $json .= '"jobs":[';
+
   $stmt = $db->prepare($query);
   $stmt->bind_result($cid, $pid, $match_time, $sid, $cputime, $walltime, $exitcode);
   $stmt->execute();
   while ($stmt->fetch()) {
-    $jobs_data[] = '{"cid":' . $cid . ',"pid":' . $pid . ',"matchTime":"' . $match_time . '","site":' . $sid . ',"cputime":' . $cputime . ',"walltime":' . $walltime . ',"exitcode":' . $exitcode . ',"selected":true}';
+    if (substr($json, -1) != '[')
+      $json .= ',';
+    $json .= '{"cid":' . $cid . ',"pid":' . $pid . ',"matchTime":"' . $match_time . '","site":' . $sid . ',"cputime":' . $cputime . ',"walltime":' . $walltime . ',"exitcode":' . $exitcode . ',"selected":true}';
 
     if (!in_array($exitcode, $codes_data))
       $codes_data[] = $exitcode;
   }
   $stmt->close();
+
+  $json .= '],';
 
   sort($codes_data);
   if (count($codes_data) != 0 && $codes_data[0] === 'null') {
@@ -274,7 +279,6 @@ else if ($_REQUEST['search'] == 'jobs') {
     $codes_data[] = 'null';
   }
 
-  $json .= '"jobs":[' . implode(',', $jobs_data) . '],';
   $json .= '"exitcodes":[' . implode(',', $codes_data) . ']';
   $json .= '}';
 
