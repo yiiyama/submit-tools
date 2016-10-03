@@ -196,12 +196,33 @@ div.clusterListContainer {
 
 #display .viewHeader {
     width: 98%;
+    height: 25px;
     background-color: #dddddd;
     font-size: 20px;
     padding: 10px 1% 10px 1%;
 }
 
+#display .toggleView {
+    width: 40px;
+    height: 100%;
+    float: left;
+}
+
+#display .viewTitle {
+    width: 50%;
+    height: 100%;
+    float: left;
+}
+
+#display .viewGetData {
+    width: 60px;
+    height: 100%;
+    float: right;
+    text-align: right;
+}
+
 #display .viewBody {
+    clear: both;
     width: 100%;
 }
 

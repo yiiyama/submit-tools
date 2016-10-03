@@ -24,16 +24,12 @@ var jobSearchKeys = {
 };
 
 var viewNames = ['siteStats', 'dayByDay', 'timeDistribution', 'jobList'];
-var viewTitles = {
-    'siteStats': 'Jobs by Site',
-    'dayByDay': 'History',
-    'timeDistribution': 'CPU and Wall Time Distribution',
-    'jobList': 'Table'
+var viewData = {
+    'siteStats': {'title': 'Jobs by Site', 'jsonData': null, 'xorigin': 20., 'nmapping': null, 'tmapping': null},
+    'dayByDay': {'title': 'History', 'jsonData': null, 'xorigin': 10., 'jobMap': [], 'xmapping': null, 'ymapping': null, 'panelHeight': 20., 'topMargin': 0.1, 'bottomMargin': 0.1},
+    'timeDistribution': {'title': 'CPU and Wall Time Distribution', 'jsonData': null, 'xorigin': 5., 'panelHeight': 50., 'topMargin': 0.1, 'bottomMargin': 0.05, 'xmapping': null},
+    'jobList': {'title': 'Table', 'jsonData': null}
 };
-
-var siteStats = {'xorigin': 20., 'nmapping': null, 'tmapping': null};
-var dayByDay = {'xorigin': 10., 'jobMap': [], 'xmapping': null, 'ymapping': null, 'panelHeight': 20., 'topMargin': 0.1, 'bottomMargin': 0.1};
-var timeDistribution = {'xorigin': 5., 'panelHeight': 50., 'topMargin': 0.1, 'bottomMargin': 0.05, 'xmapping': null};
 
 var exitCodesPerRow = 16;
 var sitesPerRow = 4;
@@ -137,12 +133,25 @@ function initPage()
         .attr('id', function (d) { return d; });
 
     var viewHeader = views.append('div').classed('viewHeader', true);
-    viewHeader.append('span').classed('toggleView clickable', true)
+
+    viewHeader.append('div').classed('toggleView clickable', true)
         .html('&#9661; ')
         .on('click', function (d) { toggleView(d); });
         
-    viewHeader.append('span')
-        .text(function (d) { return viewTitles[d]; });
+    viewHeader.append('div').classed('viewTitle', true)
+        .text(function (d) { return viewData[d].title; });
+
+    viewHeader.append('div').classed('viewGetData', true)
+        .append('input').attr('type', 'button')
+        .property('value', 'JSON')
+        .property('disabled', true)
+        .on('click', function (d) { dumpJSON(d); });
+
+    viewHeader.append('div').classed('viewGetData', true)
+        .append('input').attr('type', 'button')
+        .property('value', 'CSV')
+        .property('disabled', true)
+        .on('click', function (d) { dumpCSV(d); });
 
     views.append('div').classed('viewBody', true)
         .style('display', 'none');
@@ -460,16 +469,22 @@ function toggleView(id)
         attachData(id);
         updateView(id);
 
-        view.select('span.toggleView')
+        view.select('div.toggleView')
             .html('&#9651; ');
+
+        view.selectAll('div.viewGetData input')
+            .property('disabled', false);
     }
     else {
         body.selectAll('*')
             .remove();
         body.style('display', 'none');
 
-        view.select('span.toggleView')
+        view.select('div.toggleView')
             .html('&#9661; ');
+
+        view.selectAll('div.viewGetData input')
+            .property('disabled', true);
     }
 }
 
@@ -487,7 +502,7 @@ function setupView(id)
 
         canvas.append('g').classed('legendArea', true)
             .append('g').classed('legend', true)
-            .attr('transform', 'translate(' + siteStats.xorigin + ',1)')
+            .attr('transform', 'translate(' + viewData.siteStats.xorigin + ',1)')
             .append('text').classed('legendTitle', true);
 
         canvas.append('g').classed('graphArea', true);
@@ -500,21 +515,21 @@ function setupView(id)
 
         canvas.append('g').classed('legendArea', true)
             .append('g').classed('legend', true)
-            .attr('transform', 'translate(' + dayByDay.xorigin + ',1)')
+            .attr('transform', 'translate(' + viewData.dayByDay.xorigin + ',1)')
             .append('text').classed('legendTitle', true);
 
         canvas.append('g').classed('graphArea', true);
     }
     else if (id == 'timeDistribution') {
         var box = d3.select('#timeDistribution div.viewBody')
-            .style('height', (timeDistribution.panelHeight * 2 + 10));
+            .style('height', (viewData.timeDistribution.panelHeight * 2 + 10));
         var canvas = box.append('svg')
             .style('width', '100%')
-            .attr('viewBox', '0 0 100 ' + (timeDistribution.panelHeight * 2 + 10));
+            .attr('viewBox', '0 0 100 ' + (viewData.timeDistribution.panelHeight * 2 + 10));
 
         canvas.append('g').classed('legendArea', true)
             .append('g').classed('legend', true)
-            .attr('transform', 'translate(' + siteStats.xorigin + ',1)')
+            .attr('transform', 'translate(' + viewData.siteStats.xorigin + ',1)')
             .append('text').classed('legendTitle', true);
 
         var graphArea = canvas.append('g').classed('graphArea', true);
@@ -522,7 +537,7 @@ function setupView(id)
             .append('text').classed('graphTitle', true)
             .text('CPU Time');
         graphArea.append('g').classed('wallGraph', true)
-            .attr('transform', 'translate(0,' + timeDistribution.panelHeight + ')')
+            .attr('transform', 'translate(0,' + viewData.timeDistribution.panelHeight + ')')
             .append('text').classed('graphTitle', true)
             .text('Wallclock Time');
 
@@ -643,33 +658,33 @@ function attachData(id)
         // coordinate system: [0, 100] x [0, Nsite*5 + 10]
         canvas.attr('viewBox', '0 0 100 ' + ymax);
 
-        siteStats.nmapping = d3.scale.linear()
+        viewData.siteStats.nmapping = d3.scale.linear()
             .domain([0, maxN * 1.05])
-            .range([0, 95. - siteStats.xorigin]);
+            .range([0, 95. - viewData.siteStats.xorigin]);
 
         var naxis = d3.svg.axis()
-            .scale(siteStats.nmapping)
+            .scale(viewData.siteStats.nmapping)
             .orient('bottom')
             .tickSize(0.6, 1);
 
         var gnaxis = graphArea.append('g').classed('axis horizontal naxis', true)
-            .attr('transform', 'translate(' + siteStats.xorigin + ',2.5)')
+            .attr('transform', 'translate(' + viewData.siteStats.xorigin + ',2.5)')
             .call(naxis)
             .append('text').classed('axisTitle', true)
             .attr({'font-size': 0.8, 'text-anchor': 'end', 'dx': '-1em'})
             .text('Jobs');
 
-        siteStats.tmapping = d3.scale.linear()
+        viewData.siteStats.tmapping = d3.scale.linear()
             .domain([0, Math.max(maxC, maxW) * 1.05])
-            .range([0, 95. - siteStats.xorigin]);
+            .range([0, 95. - viewData.siteStats.xorigin]);
 
         var taxis = d3.svg.axis()
-            .scale(siteStats.tmapping)
+            .scale(viewData.siteStats.tmapping)
             .orient('bottom')
             .tickSize(0.6, 0);
 
         var gtaxis = graphArea.append('g').classed('axis horizontal taxis', true)
-            .attr('transform', 'translate(' + siteStats.xorigin + ',5)')
+            .attr('transform', 'translate(' + viewData.siteStats.xorigin + ',5)')
             .call(taxis)
             .append('text').classed('axisTitle', true)
             .attr({'font-size': 0.8, 'text-anchor': 'end', 'dx': '-1em'})
@@ -688,7 +703,7 @@ function attachData(id)
             .tickSize(0, 0);
 
         var gyaxis = graphArea.append('g').classed('axis yaxis', true)
-            .attr('transform', 'translate(' + siteStats.xorigin + ',5)')
+            .attr('transform', 'translate(' + viewData.siteStats.xorigin + ',5)')
             .call(yaxis)
             .selectAll('g.tick text')
             .attr('x', -3);
@@ -702,7 +717,7 @@ function attachData(id)
             .data(sortedSites)
             .enter()
             .append('g').classed('siteData', true)
-            .attr('transform', function (d) { return 'translate(' + siteStats.xorigin + ',' + (5 + ymapping(d.name)) + ')'; });
+            .attr('transform', function (d) { return 'translate(' + viewData.siteStats.xorigin + ',' + (5 + ymapping(d.name)) + ')'; });
 
         siteData.append('g').classed('jobCounts', true)
             .attr('transform', 'translate(0,-1.7)')
@@ -732,7 +747,7 @@ function attachData(id)
 
         var nLegRows = Math.floor(legend.selectAll('g.legendEntry').size() / sitesPerRow);
 
-        canvas.attr('viewBox', '0 0 100 ' + (dayByDay.panelHeight + nLegRows * 2 + 5));
+        canvas.attr('viewBox', '0 0 100 ' + (viewData.dayByDay.panelHeight + nLegRows * 2 + 5));
 
         var graphArea = canvas.select('g.graphArea');
 
@@ -742,9 +757,9 @@ function attachData(id)
         var end = d3.time.day.offset(new Date(d3.select('#submitEnd').property('value')), 1);
         var days = d3.time.day.range(begin, end);
 
-        dayByDay.jobMap = [];
+        viewData.dayByDay.jobMap = [];
         for (var x in days)
-            dayByDay.jobMap.push([]);
+            viewData.dayByDay.jobMap.push([]);
 
         for (var x in jobs) {
             var job = jobs[x];
@@ -752,12 +767,12 @@ function attachData(id)
             var iD = Math.floor((jobDate - begin) / 1000 / 60 / 60 / 24);
             if (iD >= days.length)
                 iD = days.length - 1;
-            dayByDay.jobMap[iD].push(job);
+            viewData.dayByDay.jobMap[iD].push(job);
         }
 
         var maxT = 0;
-        for (var x in dayByDay.jobMap) {
-            var dayJobs = dayByDay.jobMap[x];
+        for (var x in viewData.dayByDay.jobMap) {
+            var dayJobs = viewData.dayByDay.jobMap[x];
             var sum = 0;
             for (var y in dayJobs)
                 sum += dayJobs[y].cputime / 3600.;
@@ -765,22 +780,22 @@ function attachData(id)
                 maxT = sum;
         }
 
-        var graphHeight = dayByDay.panelHeight * (1 - dayByDay.topMargin - dayByDay.bottomMargin);
+        var graphHeight = viewData.dayByDay.panelHeight * (1 - viewData.dayByDay.topMargin - viewData.dayByDay.bottomMargin);
 
         graphArea.selectAll('g.axis')
             .remove();
 
-        dayByDay.ymapping = d3.scale.linear()
+        viewData.dayByDay.ymapping = d3.scale.linear()
             .domain([0, maxT * 1.05])
             .range([graphHeight, 0]);
 
         var yaxis = d3.svg.axis()
-            .scale(dayByDay.ymapping)
+            .scale(viewData.dayByDay.ymapping)
             .orient('left')
             .tickSize(0.6, 1);
 
         var gyaxis = graphArea.append('g').classed('axis yaxis', true)
-            .attr('transform', 'translate(' + dayByDay.xorigin + ',' + (dayByDay.panelHeight * dayByDay.topMargin) + ')')
+            .attr('transform', 'translate(' + viewData.dayByDay.xorigin + ',' + (viewData.dayByDay.panelHeight * viewData.dayByDay.topMargin) + ')')
             .call(yaxis)
             .append('text').classed('axisTitle', true)
             .attr({'font-size': 0.8, 'text-anchor': 'end', 'dx': '-1em'})
@@ -788,7 +803,7 @@ function attachData(id)
 
         var xmapping = d3.time.scale()
             .domain([begin, end])
-            .range([0., (100 - dayByDay.xorigin - 5)]);
+            .range([0., (100 - viewData.dayByDay.xorigin - 5)]);
        
         var xaxis = d3.svg.axis()
             .scale(xmapping)
@@ -797,12 +812,12 @@ function attachData(id)
             .tickSize(0.6, 1);
 
         var gxaxis = graphArea.append('g').classed('axis xaxis', true)
-            .attr('transform', 'translate(' + dayByDay.xorigin + ',' + (dayByDay.panelHeight * (1 - dayByDay.bottomMargin)) + ')')
+            .attr('transform', 'translate(' + viewData.dayByDay.xorigin + ',' + (viewData.dayByDay.panelHeight * (1 - viewData.dayByDay.bottomMargin)) + ')')
             .call(xaxis);
 
         formatAxes(graphArea);
 
-        var dayw = (95 - dayByDay.xorigin) / days.length;
+        var dayw = (95 - viewData.dayByDay.xorigin) / days.length;
 
         gxaxis.selectAll('g.tick text')
             .attr({'x': 0.45 * dayw, 'y': 1.8, 'dy': 0});
@@ -812,7 +827,7 @@ function attachData(id)
             .data(days)
             .enter()
             .append('g').classed('dayData', true)
-            .attr('transform', function (d) { return 'translate(' + (dayByDay.xorigin + xmapping(d)) + ',' + (dayByDay.panelHeight * (1 - dayByDay.bottomMargin)) + ')'; });
+            .attr('transform', function (d) { return 'translate(' + (viewData.dayByDay.xorigin + xmapping(d)) + ',' + (viewData.dayByDay.panelHeight * (1 - viewData.dayByDay.bottomMargin)) + ')'; });
     }
     else if (target.timeDistribution) {
         var canvas = d3.select('#timeDistribution div.viewBody').select('svg');
@@ -830,16 +845,16 @@ function attachData(id)
 
         var xmax = Math.max(maxCPUJob, maxWallJob);
 
-        timeDistribution.xmapping = d3.scale.linear()
+        viewData.timeDistribution.xmapping = d3.scale.linear()
             .domain([0, xmax * 1.05])
-            .range([0, 95. - timeDistribution.xorigin]);
+            .range([0, 95. - viewData.timeDistribution.xorigin]);
 
         var xaxis = d3.svg.axis()
-            .scale(timeDistribution.xmapping)
+            .scale(viewData.timeDistribution.xmapping)
             .orient('bottom')
             .tickSize(0.6, 0);
 
-        var graphHeight = timeDistribution.panelHeight * (1 - timeDistribution.topMargin - timeDistribution.bottomMargin);
+        var graphHeight = viewData.timeDistribution.panelHeight * (1 - viewData.timeDistribution.topMargin - viewData.timeDistribution.bottomMargin);
 
         var timeTypes = ['cpu', 'wall'];
         for (var t in timeTypes) {
@@ -852,7 +867,7 @@ function attachData(id)
                 .remove();
 
             var gxaxis = graph.append('g').classed('axis xaxis', true)
-                .attr('transform', 'translate(' + timeDistribution.xorigin + ',' + (timeDistribution.panelHeight * (1 - timeDistribution.bottomMargin)) + ')')
+                .attr('transform', 'translate(' + viewData.timeDistribution.xorigin + ',' + (viewData.timeDistribution.panelHeight * (1 - viewData.timeDistribution.bottomMargin)) + ')')
                 .call(xaxis);
 
             gxaxis.selectAll('g.tick text')
@@ -863,7 +878,7 @@ function attachData(id)
                 .text('Time (s)');
 
             graph.append('g').classed('axis yaxis', true)
-                .attr('transform', 'translate(' + timeDistribution.xorigin + ',' + (timeDistribution.panelHeight * timeDistribution.topMargin) + ')')
+                .attr('transform', 'translate(' + viewData.timeDistribution.xorigin + ',' + (viewData.timeDistribution.panelHeight * viewData.timeDistribution.topMargin) + ')')
                 .append('path').classed('domain', true)
                 .attr('d', 'M-1,0H0V42.5H-1');
 
@@ -1027,23 +1042,25 @@ function updateView(id)
         wallBars.selectAll('rect.bar')
             .remove();
 
+        viewData.siteStats.jsonData = siteData.data();
+
         for (var x in exitcodes) {
             var code = exitcodes[x];
             var color = code == null ? '#333333' : colors[code % NCOLORS];
 
             jobBars.append('rect').classed('bar', true)
-                .attr('width', function (s) { return siteStats.nmapping(s.code[code].n); })
-                .attr('transform', function (s) { return 'translate(' + siteStats.nmapping(ncumul[s.id][x]) + ',0)'})
+                .attr('width', function (s) { return viewData.siteStats.nmapping(s.code[code].n); })
+                .attr('transform', function (s) { return 'translate(' + viewData.siteStats.nmapping(ncumul[s.id][x]) + ',0)'})
                 .attr('fill', color);
 
             cpuBars.append('rect').classed('bar', true)
-                .attr('width', function (s) { return siteStats.tmapping(s.code[code].cputime); })
-                .attr('transform', function (s) { return 'translate(' + siteStats.tmapping(ccumul[s.id][x]) + ',0)'})
+                .attr('width', function (s) { return viewData.siteStats.tmapping(s.code[code].cputime); })
+                .attr('transform', function (s) { return 'translate(' + viewData.siteStats.tmapping(ccumul[s.id][x]) + ',0)'})
                 .attr('fill', color);
 
             wallBars.append('rect').classed('bar', true)
-                .attr('width', function (s) { return siteStats.tmapping(s.code[code].walltime); })
-                .attr('transform', function (s) { return 'translate(' + siteStats.tmapping(wcumul[s.id][x]) + ',0)'})
+                .attr('width', function (s) { return viewData.siteStats.tmapping(s.code[code].walltime); })
+                .attr('transform', function (s) { return 'translate(' + viewData.siteStats.tmapping(wcumul[s.id][x]) + ',0)'})
                 .attr('fill', color);
         }
 
@@ -1056,27 +1073,37 @@ function updateView(id)
 
         var dayData = graphArea.selectAll('g.dayData');
 
-        var dayw = (95 - dayByDay.xorigin) / dayData.size();
-        var graphHeight = dayByDay.panelHeight * (1 - dayByDay.topMargin - dayByDay.bottomMargin);
+        var dayw = (95 - viewData.dayByDay.xorigin) / dayData.size();
+        var graphHeight = viewData.dayByDay.panelHeight * (1 - viewData.dayByDay.topMargin - viewData.dayByDay.bottomMargin);
 
         var sortedSites = d3.keys(sites).sort();
 
-        dayData.each(function (d, iday) {
-                var cputimes = {};
-                for (var s in sites)
-                    cputimes[s] = 0.;
+        viewData.dayByDay.jsonData = [];
+        var dateFormat = d3.time.format('%Y-%m-%d');
 
-                for (var x in dayByDay.jobMap[iday]) {
-                    var job = dayByDay.jobMap[iday][x];
+        dayData.each(function (d, iday) {
+                var njobs = {};
+                var cputimes = {};
+                for (var s in sites) {
+                    njobs[s] = 0;
+                    cputimes[s] = 0.;
+                }
+
+                for (var x in viewData.dayByDay.jobMap[iday]) {
+                    var job = viewData.dayByDay.jobMap[iday][x];
                     if (!job.selected)
                         continue;
 
+                    njobs[job.site] += 1;
                     cputimes[job.site] += job.cputime / 3600.;
                 }
-                
+
+                var njobsarr = [];
                 var cputimesarr = [];
-                for (var x in sortedSites)
+                for (var x in sortedSites) {
+                    njobsarr.push(njobs[sortedSites[x]]);
                     cputimesarr.push(cputimes[sortedSites[x]]);
+                }
 
                 var totals = [0];
                 for (var x in cputimesarr) {
@@ -1090,20 +1117,28 @@ function updateView(id)
                     .enter()
                     .append('rect').classed('bar', true)
                     .attr('width', dayw * 0.9)
-                    .attr('height', function (d) { return (graphHeight - dayByDay.ymapping(d)); })
-                    .attr('transform', function (d, isite) { return 'translate(' + (dayw * 0.05) + ',' + (dayByDay.ymapping(totals[isite]) - graphHeight) + ')'})
+                    .attr('height', function (d) { return (graphHeight - viewData.dayByDay.ymapping(d)); })
+                    .attr('transform', function (d, isite) { return 'translate(' + (dayw * 0.05) + ',' + (viewData.dayByDay.ymapping(totals[isite]) - graphHeight) + ')'})
                     .attr('fill', function (d, isite) { return colors[isite % NCOLORS]; });
+
+                var datum = {'day': dateFormat(d), 'sites': []};
+                for (var x in sortedSites)
+                    datum.sites.push({'name': sites[sortedSites[x]].name, 'njobs': njobsarr[x], 'cputime': cputimesarr[x]});
+
+                viewData.dayByDay.jsonData.push(datum);
             });
     }
     else if (target.timeDistribution) {
         var canvas = d3.select('#timeDistribution div.viewBody').select('svg');
         var graphArea = canvas.select('g.graphArea');
 
-        var binning = timeDistribution.xmapping.ticks(50);
-        var xwidth = timeDistribution.xmapping(binning[1] - binning[0]);
+        var binning = viewData.timeDistribution.xmapping.ticks(50);
+        var xwidth = viewData.timeDistribution.xmapping(binning[1] - binning[0]);
         
-        var yorigin = timeDistribution.panelHeight * (1 - timeDistribution.bottomMargin);
-        var graphHeight = timeDistribution.panelHeight * (1 - timeDistribution.topMargin - timeDistribution.bottomMargin);
+        var yorigin = viewData.timeDistribution.panelHeight * (1 - viewData.timeDistribution.bottomMargin);
+        var graphHeight = viewData.timeDistribution.panelHeight * (1 - viewData.timeDistribution.topMargin - viewData.timeDistribution.bottomMargin);
+
+        viewData.timeDistribution.jsonData = {};
 
         var timeTypes = ['cpu', 'wall'];
         for (var t in timeTypes) {
@@ -1152,7 +1187,7 @@ function updateView(id)
                 .tickSize(0.6, 1);
 
             var gyaxis = graph.append('g').classed('axis yaxis', true)
-                .attr('transform', 'translate(' + timeDistribution.xorigin + ',' + (timeDistribution.panelHeight * timeDistribution.topMargin) + ')')
+                .attr('transform', 'translate(' + viewData.timeDistribution.xorigin + ',' + (viewData.timeDistribution.panelHeight * viewData.timeDistribution.topMargin) + ')')
                 .call(yaxis);
 
             formatAxes(graph);
@@ -1161,7 +1196,7 @@ function updateView(id)
                 .attr('x', -1);
 
             var histogram = graph.append('g').classed('histogram', true)
-                .attr('transform', 'translate(' + timeDistribution.xorigin + ',' + yorigin + ')');
+                .attr('transform', 'translate(' + viewData.timeDistribution.xorigin + ',' + yorigin + ')');
 
             var ymapping = d3.scale.linear()
                 .domain([0, ymax * 1.05])
@@ -1185,6 +1220,16 @@ function updateView(id)
                     .append('rect').classed('bar', true)
                     .attr({'width': xwidth, 'fill': colors[code % NCOLORS]})
                     .attr('height', function (d) { return ymapping(d); });
+            }
+
+            viewData.timeDistribution.jsonData[timeType] = [];
+            for (var i in binning)
+                viewData.timeDistribution.jsonData[timeType].push({});
+
+            for (var x in exitcodes) {
+                var code = exitcodes[x];
+                for (var i in binning)
+                    viewData.timeDistribution.jsonData[timeType][i][code] = histData[code][i];
             }
         }
     }
@@ -1216,6 +1261,12 @@ function updateView(id)
             .text(totalCPUTime);
         thead.select('th.totalWallTime')
             .text(totalWallTime);
+
+        viewData.jobList.jsonData = [];
+        for (x in jobs) {
+            if (jobs[x].selected)
+                viewData.jobList.jsonData.push(jobs[x]);
+        }
     }
 }
 
@@ -1350,4 +1401,70 @@ function siteLegend(legend)
     legendEntries.append('text').classed('legendText', true)
         .attr({'transform': 'translate(1.8,0)', 'font-size': 0.8, 'dy': '0.8em'})
         .text(function (d) { return d.name; });
+}
+
+function dumpJSON(viewName)
+{
+    var data = encodeURIComponent(JSON.stringify(viewData[viewName].jsonData));
+    var dl = document.getElementById('downloadData');
+    dl.setAttribute('href', 'data:text/json;charset=utf-8,' + data);
+    dl.setAttribute('download', viewName + '.json');
+    dl.click();
+}
+
+function dumpCSV(viewName)
+{
+    var csv = '';
+    if (viewName == 'siteStats') {
+        csv += '"id","name","frontend",';
+        for (var x in exitcodes) {
+            var code = exitcodes[x];
+            csv += '"' + code + ' njobs","' + code + ' CPU time","' + code + ' wall time",';
+        }
+        csv += "\n";
+
+        for (var x in viewData.siteStats.jsonData) {
+            var site = viewData.siteStats.jsonData[x];
+            csv += site.id + ',"' + site.name + '",' + site.frontend + ',';
+            for (var i in exitcodes) {
+                var data = site['code'][exitcodes[i]];
+                csv += data['n'] + ',' + data['cputime'] + ',' + data['walltime'] + ',';
+            }
+        }
+    }
+    else if (viewName == 'dayByDay') {
+        csv += '"site",';
+        for (var x in viewData.dayByDay.jsonData) {
+            var data = viewData.dayByDay.jsonData[x];
+            csv += '"' + data['day'] + ' njobs","' + data['day'] + ' CPU time",';
+        }
+        csv += '\n';
+
+        var sortedSites = d3.keys(sites).sort();
+        for (var s in sortedSites) {
+            var sid = sortedSites[s];
+            var site = sites[sid];
+            csv += '"' + site.name + '",';
+
+            for (var x in viewData.dayByDay.jsonData) {
+                var data = viewData.dayByDay.jsonData[x];
+                for (var q in data['sites']) {
+                    if (data['sites'][q]['name'] != sites[sid].name)
+                        continue;
+                    csv += data['sites'][q]['njobs'] + ',' + data['sites'][q]['cputime'] + ',';
+                }
+            }
+            csv += '\n';
+        }
+    }
+    else if (viewName == 'timeDistribution') {
+    }
+    else if (viewName == 'jobList') {
+    }
+
+    var data = encodeURIComponent(csv);
+    var dl = document.getElementById('downloadData');
+    dl.setAttribute('href', 'data:text/csv;charset=utf-8,' + data);
+    dl.setAttribute('download', viewName + '.csv');
+    dl.click();
 }
