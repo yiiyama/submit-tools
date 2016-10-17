@@ -151,11 +151,11 @@ for jobads in all_ads:
         site_name = ''
 
     try:
-        site_pool = str(jobads['MATCH_GLIDEIN_SiteWMS_Queue'])
+        site_pool = str(jobads['MATCH_GLIDEIN_SiteWMS_Queue']).lower()
     except KeyError:
-        site_pool = 'Unknown'
+        site_pool = 'unknown'
 
-    if site_pool == 'Unknown':
+    if site_pool == 'unknown':
         try:
             remote_slot = str(jobads['LastRemoteHost']).lower()
         except KeyError:
