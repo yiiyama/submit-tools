@@ -8,26 +8,26 @@ if (!isset($_REQUEST['search']))
 function form_cluster_constraints($users, $cmds, $cids, $begin, $end) {
   global $db;
 
+  $quoted_users = array();
   if (is_array($users)) {
-    $quoted_users = array();
     foreach ($users as $uid)
       $quoted_users[] = sprintf('%s', $db->real_escape_string('' . $uid));
   }
   else if ($users != '')
-    $quoted_users = array(sprintf('%s', $db->real_escape_string('' . $users)));
+    $quoted_users[] = sprintf('%s', $db->real_escape_string('' . $users));
 
+  $quoted_cmds = array();
   if (is_array($cmds)) {
-    $quoted_cmds = array();
     foreach ($cmds as $cmd) {
       if (strlen($cmd) != 0)
         $quoted_cmds[] = sprintf("'%s'", $db->real_escape_string($cmd));
     }
   }
   else if ($cmds != '')
-    $quoted_cmds = array(sprintf("'%s'", $db->real_escape_string($cmds)));
+    $quoted_cmds[] = sprintf("'%s'", $db->real_escape_string($cmds));
 
+  $quoted_cids = array();
   if (is_array($cids)) {
-    $quoted_cids = array();
     foreach ($cids as $cid) {
       $s = '' . $cid;
       if (strlen($s) != 0)
@@ -35,7 +35,7 @@ function form_cluster_constraints($users, $cmds, $cids, $begin, $end) {
     }
   }
   else if ('' . $cids != '')
-    $quoted_cids = array(sprintf('%s', $db->real_escape_string('' . $s)));
+    $quoted_cids[] = sprintf('%s', $db->real_escape_string('' . $s));
 
   $tm = strptime($begin, '%Y/%m/%d');
   if ($tm !== false)
@@ -74,7 +74,7 @@ $stmt->fetch();
 $stmt->close();
 
 if ($_REQUEST['search'] == 'initial') {
-  $data = array();
+   $data = array();
 
   $data['users'] = array();
   $data['frontends'] = array();
@@ -102,15 +102,26 @@ else if ($_REQUEST['search'] == 'clusters') {
   $data['many'] = false;
   $data['clusters'] = array();
 
-  $users = $_REQUEST['users'];
-  $cmds = $_REQUEST['cmds'];
+  if (array_key_exists('users', $_REQUEST))
+    $users = $_REQUEST['users'];
+  else
+    $users = array();
+
+  if (array_key_exists('cmds', $_REQUEST))
+    $cmds = $_REQUEST['cmds'];
+  else
+    $cmds = array();
 
   if (count($users) == 0 && count($cmds) == 0) {
     echo json_encode($data);
     exit(0);
   }
 
-  $cids = $_REQUEST['ids'];
+  if (array_key_exists('ids', $_REQUEST))
+    $cids = $_REQUEST['ids'];
+  else
+    $cids = array();
+
   $begin = $_REQUEST['begin'];
   $end = $_REQUEST['end'];
 
