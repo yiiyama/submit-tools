@@ -1,0 +1,1 @@
+*/2 * * * * /usr/local/bin/vomsinfo > /dev/null 2>&1
