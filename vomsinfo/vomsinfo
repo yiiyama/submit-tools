@@ -6,9 +6,9 @@ rm -f $LIST
 
 for PROXY in $(ls /tmp/x509up_u*)
 do
-  UID=$(echo $PROXY | sed 's|/tmp/x509up_u\([0-9]*\)|\1|')
-  [ $UID ] || continue
-  UNAME=$(getent passwd $UID | sed 's/\([^:]*\):/\1/')
+  ID=$(echo $PROXY | sed 's|/tmp/x509up_u\([0-9]*\)|\1|')
+  [ $ID ] || continue
+  UNAME=$(getent passwd $ID | sed 's/\([^:]*\):/\1/')
   [ $UNAME ] || continue
 
   echo $UNAME $(voms-proxy-info -file $PROXY -vo) >> $LIST
