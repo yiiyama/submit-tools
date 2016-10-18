@@ -7,8 +7,6 @@ import pwd
 from argparse import ArgumentParser
 import classad
 
-thisdir = os.path.dirname(__file__)
-
 FRONTENDS = {
     'Campus': 't3serv007.mit.edu:11000?sock=collector',
     'OSG': 'osg-flock.grid.iu.edu',
@@ -139,7 +137,7 @@ if 'OSG' in args.frontends:
     site_requirements.append(' && '.join(reqs))
 
 if 'CMS' in args.frontends:
-    with open(thisdir + '/cms_sites.list') as cms_sites:
+    with open('/var/spool/condor/cms_sites.list') as cms_sites:
         other_ads.append('+DESIRED_Sites = "' + ','.join(cms_sites.read().split()) + '"')
 
     reqs = ['stringListMember("' + FRONTENDS['CMS'] + '", COLLECTOR_HOST_STRING, ",")']
