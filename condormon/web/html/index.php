@@ -157,6 +157,7 @@ foreach ($rrds as $rrd) {
   $images .= '      <div class="username"><a href="jobs/' . $user . '.txt">' . $user . '</a></div>' . "\n";
   $images .= '      <img src="imgs/' . $user . '_2h.png">' . "\n";
   $images .= '      <img src="imgs/' . $user . '_1d.png">' . "\n";
+  $images .= '      <img src="imgs/' . $user . '_1w.png">' . "\n";
   $images .= '    </div>' . "\n";
 
   ++$irow;
@@ -183,6 +184,7 @@ $images .= '    <div class="graphs">' . "\n";
 $images .= '      <div class="username">Total</div>' . "\n";
 $images .= '      <img src="imgs/Total_2h.png">' . "\n";
 $images .= '      <img src="imgs/Total_1d.png">' . "\n";
+$images .= '      <img src="imgs/Total_1w.png">' . "\n";
 $images .= '    </div>' . "\n";
 
 $html .= '    </table>' . "\n";
