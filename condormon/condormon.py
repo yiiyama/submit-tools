@@ -302,7 +302,7 @@ if args.rrdDir:
             dataDefs = [rrdFile, '--start', str(start), '--step', str(INTERVAL)]
             for c in JOB_COUNTERS:
                 dataDefs.append('DS:' + c + ':GAUGE:600:0:U')
-            dataDefs.append('RRA:LAST:0:1:' + str(3600 / INTERVAL * 24))
+            dataDefs.append('RRA:LAST:0:1:' + str(3600 / INTERVAL * 24 * 7))
 
             rrdtool.create(*tuple(dataDefs))
 
@@ -338,7 +338,8 @@ if args.rrdDir:
                 graphDefs.append('AREA:' + c + '#' + color + ':' + title + ':STACK')
 
             try:
-                rrdtool.graph(args.graphDir + '/' + user + '_1d.png', '--start=%d' % (timestamp - 3600 * 24), '--end=%d' % timestamp, *tuple(['--title=24H'] + graphDefs))
+                rrdtool.graph(args.graphDir + '/' + user + '_1w.png', '--start=%d' % (timestamp - 3600 * 24 * 7), '--end=%d' % timestamp, *tuple(['--title=1W'] + graphDefs))
+                rrdtool.graph(args.graphDir + '/' + user + '_1d.png', '--start=%d' % (timestamp - 3600 * 24), '--end=%d' % timestamp, *tuple(['--title=1D'] + graphDefs))
                 rrdtool.graph(args.graphDir + '/' + user + '_2h.png', '--start=%d' % (timestamp - 3600 * 2), '--end=%d' % timestamp, *tuple(['--title=2H'] + graphDefs))
             except:
                 pass
