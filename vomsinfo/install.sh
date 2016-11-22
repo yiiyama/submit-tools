@@ -2,7 +2,7 @@
 
 SRCDIR=$(cd $(dirname $0); pwd)
 
-cp $SRCDIR/vomsinfo /usr/local/bin/
+cp $SRCDIR/vomsinfo /usr/local/sbin/
 
 crontab -l | grep vomsinfo > /dev/null
 if [ $? -ne 0 ]
