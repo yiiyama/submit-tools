@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SubMIT</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link href="css/common.css" rel="stylesheet">
+  </head>
+  <body>
+    <h2>Interesting Links</h2> 
+    <p><a href="condormon/index.php">Condormon</a> for tracking jobs, <a href="condor_history/index.html">JobReports</a> search and analyse completed jobs</p>
+    <hr>
+
+    <h1>Introduction</h1>
+    <p>SubMIT is a batch submission interface to on- and off-campus computing resources. It uses <a href="https://research.cs.wisc.edu/htcondor/">HTCondor</a> as the batch job management system and uses its "flocking" mechanism to connect multiple computing clusters into a single pool. At most clusters, jobs submitted from SubMIT runs "opportunistically", i.e., with lower priority than the jobs which use the clusters as dedicated resources.</p>
+    <p>Cluster composition is transparent to the users, but the users can choose the resource to use if needed. Currently available clusters are: <a href="https://www.opensciencegrid.org/">Open Science Grid (OSG)</a>; CMS analysis pool (open to CMS collaborators only); Engage HPC at <a href="https://eapsweb.mit.edu/">MIT Earth, Atmospheric, and Planetary Sciences</a>; <a href="http://www.cmsaf.mit.edu/">T2_US_MIT</a>; and <a href="http://t3serv001.mit.edu/">T3_US_MIT</a>.</p>
+    
+    <h1>Using SubMIT</h1>
+    <ul>
+      <li>Only users in LNS <pre class="inline">mit-submit</pre> user group are able to log into the machine. To apply for an account, submit an <a href="http://web.mit.edu/lns/services/compserv/requests/acctappl.html">LNS account application form</a> with a comment specifying that the account should be added to <pre class="inline">mit-submit</pre>.</li>
+      <li>Each user has an AFS home area (/afs/lns.mit.edu/user/<i>user</i>, quota 2 GB) that is managed together with other LNS users and a local work area (/work/<i>user</i>, quota 20 GB). The home area is intended for source code etc. that require backups but are small. /work is *not* backed up (but is on RAID 5, so data is protected against a single disk failure).</li>
+      <li>The machine itself has 40 CPUs and a huge memory, so it will not be a problem to e.g. compile or run short test jobs interactively.</li>
+      <li>An LNS.MIT.EDU kerberos ticket is required to even browse your home area (you will obtain a ticket automatically when you log in). This means that system processes (e.g. condor) may not be able to see files under your home directory. Therefore you will probably need to set up most of your workflows to use an area under /work.</li>
+      <li>Since /work is also not too big, you will have to have an external storage somewhere if your jobs produce large outputs. Transfer of the output files to the storage should be done within your jobs.</li>
+    </ul>
+    
+    <h1>Preparing batch tasks</h1>
+    <p>Each HTCondor job will run in an independent isolated area. This means you should create a package of whatever you will use from your local environment (on SubMIT) and ship it together with your job using HTCondor's file transfer mechanism. The steps are as follows:</p>
+    
+    <ol>
+      <li>
+        Create a workspace <br>
+        Make a directory where everything needed for this task sits. We will denote this directory as {workspace} in the following. Keep the content to the minimum; a compressed version of this directory will be transferred to every job you run. Because condor cannot see the contents of AFS directories, this workspace must be under your work area (/work/<i>user</i>).
+      </li>
+      <li>
+        Make a tarball
+        <pre>
+          tar czf {workspace}.tar.gz {workspace}
+        </pre>
+      </li>
+      <li>
+        Write an executable script to unpack the tarball and run your job <br>
+        The script may take an integer as an argument. HTCondor can pass a "Process Id" (job serial number in condor-speak) to its executable. This feature can be used to differentiate the jobs using the same workspace. For example, random number seeds can be generated off the Process Id so that all jobs have distinct random number sequences.
+      </li>
+      <li>
+        Write a condor job description and submit <br>
+        Job description tells condor what script to execute and what files to transfer. Here is an example:
+        <pre>
+          universe = vanilla
+          executable = {workspace}/run.sh
+          should_transfer_files = YES
+          when_to_transfer_output = ON_EXIT
+          transfer_input_files = {workspace}.tar.gz
+          transfer_output_files = ""
+          log = /path/to/log/directory/$(Process).log
+          output = /path/to/log/directory/$(Process).out
+          error = /path/to/log/directory/$(Process).err
+          arguments = $(Process)
+          requirements = <i>REQUIREMENTS</i>
+          queue <i>N</i>
+        </pre>
+        <i>N</i> is the number of jobs to submit at once. Each job is assigned a Process Id between 0 and <i>N</i>-1 (<pre class="inline">$(Process)</pre> in the job description). <br>
+        See below for <i>REQUIREMENTS</i> to make your jobs match the resources at various clusters. <br>
+        Paths for log, output, and error files also must be under /work. <br>
+        Consult the HTCondor manual for the general features of the job description. Many clusters that SubMIT connects to respond to specific requirements or additionally defined job properties. Check the next section for individual documentation.
+      </li>
+      <li>
+        Submit the jobs
+        <pre>
+          condor_submit /path/to/job/description
+        </pre>
+      </li>
+    </ol>
+
+    <h1>Monitoring running and completed jobs</h1>
+    <ul>
+      <li><a href="condormon/index.php">Condormon</a> for tracking jobs currently in queue (idle/running/held)</li>
+      <li><a href="condor_history/index.html">JobReports</a> for interactive search and analysis of completed jobs</li>
+    </ul>
+  </body>
+</html>
