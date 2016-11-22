@@ -3,11 +3,14 @@
   <head>
     <title>SubMIT</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <link href="css/common.css" rel="stylesheet">
+    <link href="/css/common.css" rel="stylesheet">
   </head>
   <body>
     <h2>Interesting Links</h2> 
-    <p><a href="condormon/index.php">Condormon</a> for tracking jobs, <a href="condor_history/index.html">JobReports</a> search and analyse completed jobs</p>
+    <p><a href="condormon/index.php">Condormon</a> for tracking jobs, <a href="condor_history/index.html">JobReports</a> search and analyse completed jobs.</p>
+    <p><a href="https://research.cs.wisc.edu/htcondor/">HTCondor website</a> for full documentation of HTCondor.</p>
+    <p><a href="requirements.html">Documentation</a> of the requirements line in the job description.</p>
+    <p><a href="clusters.html">Documentation</a> of clusters subMIT connects to.</p>
     <hr>
 
     <h1>Introduction</h1>
@@ -22,54 +25,77 @@
       <li>An LNS.MIT.EDU kerberos ticket is required to even browse your home area (you will obtain a ticket automatically when you log in). This means that system processes (e.g. condor) may not be able to see files under your home directory. Therefore you will probably need to set up most of your workflows to use an area under /work.</li>
       <li>Since /work is also not too big, you will have to have an external storage somewhere if your jobs produce large outputs. Transfer of the output files to the storage should be done within your jobs.</li>
     </ul>
-    
-    <h1>Preparing batch tasks</h1>
-    <p>Each HTCondor job will run in an independent isolated area. This means you should create a package of whatever you will use from your local environment (on SubMIT) and ship it together with your job using HTCondor's file transfer mechanism. The steps are as follows:</p>
-    
+
+    <h1>Job submission tutorial</h1>
+    If you are unfamiliar with HTCondor, you can get an overview of how to prepare a task and submit jobs following this tutorial. Below, {user} must be replaced by your user name.
     <ol>
       <li>
-        Create a workspace <br>
-        Make a directory where everything needed for this task sits. We will denote this directory as {workspace} in the following. Keep the content to the minimum; a compressed version of this directory will be transferred to every job you run. Because condor cannot see the contents of AFS directories, this workspace must be under your work area (/work/<i>user</i>).
-      </li>
-      <li>
-        Make a tarball
+        Copy <pre class="inline">/usr/local/share/tutorial</pre> into your work area:
         <pre>
-          tar czf {workspace}.tar.gz {workspace}
+cp -r /usr/local/share/tutorial /work/{user}/
         </pre>
       </li>
       <li>
-        Write an executable script to unpack the tarball and run your job <br>
-        The script may take an integer as an argument. HTCondor can pass a "Process Id" (job serial number in condor-speak) to its executable. This feature can be used to differentiate the jobs using the same workspace. For example, random number seeds can be generated off the Process Id so that all jobs have distinct random number sequences.
+        Submit a job (will look into the details later):
+        <pre>
+cd /work/{user}/tutorial
+./submit.sh
+        </pre>
       </li>
       <li>
-        Write a condor job description and submit <br>
-        Job description tells condor what script to execute and what files to transfer. Here is an example:
+        Check your job status:
         <pre>
-          universe = vanilla
-          executable = {workspace}/run.sh
-          should_transfer_files = YES
-          when_to_transfer_output = ON_EXIT
-          transfer_input_files = {workspace}.tar.gz
-          transfer_output_files = ""
-          log = /path/to/log/directory/$(Process).log
-          output = /path/to/log/directory/$(Process).out
-          error = /path/to/log/directory/$(Process).err
-          arguments = $(Process)
-          requirements = <i>REQUIREMENTS</i>
-          queue <i>N</i>
+condor_q {user}
         </pre>
-        <i>N</i> is the number of jobs to submit at once. Each job is assigned a Process Id between 0 and <i>N</i>-1 (<pre class="inline">$(Process)</pre> in the job description). <br>
-        See below for <i>REQUIREMENTS</i> to make your jobs match the resources at various clusters. <br>
-        Paths for log, output, and error files also must be under /work. <br>
-        Consult the HTCondor manual for the general features of the job description. Many clusters that SubMIT connects to respond to specific requirements or additionally defined job properties. Check the next section for individual documentation.
+        You will see an output like this:
+        <pre>
+-- Schedd: SUBMIT.MIT.EDU : &lt;18.77.2.251:9615?...
+ ID      OWNER            SUBMITTED     RUN_TIME ST PRI SIZE CMD               
+298263.0   yiiyama        11/22 12:54   0+00:00:00 I  0   0.0  first_test.sh 0
+
+1 jobs; 0 completed, 0 removed, 1 idle, 0 running, 0 held, 0 suspended
+        </pre>
+        There will be a line for each of your jobs currently in queue. Status "I" means that the job has not been picked up by an execute node. When execution starts, the status changes to "R". When the job completes or fails, depeding on the setting used at the submission time, the job will either disappear from the queue or will be kept with "C"=completed or "H"=held status.
+        To remove a job from the queue any time, issue the command
+        <pre>
+condor_rm {jobid}
+        </pre>
+        where {jobid} can be the "job cluster" number (298263 in the example above) or the full job id (298263.0). Removing jobs by cluster number is used when all jobs that are submitted at the same time and thus share a cluster number should be removed. It is also possible to remove all jobs of a user: <pre class="inline">condor_rm {user}</pre>.
       </li>
       <li>
-        Submit the jobs
+        Once your job completes and disappears from the queue, check the output:
         <pre>
-          condor_submit /path/to/job/description
+cat /work/{user}/tutorial/output/first_test_output_0.txt
         </pre>
+        You should see the following:
+        <pre>
+Hello! This is file 0 opened at: 
+submit.mit.edu
+        </pre>
+        This means that a job successfully ran on the local condor testbed.
+      </li>
+      <li>
+        Now we should take a look at the scripts. First open <pre class="inline">submit.sh</pre> with your favorite text editor. You will find several lines of setup options, followed by some logistical lines, and at end of the script, a command <pre class="inline">condor_submit</pre>. This command parses the job description generated in the preceding lines and submits a job to the "pool" of execute nodes. <br>
+        In the job description, you must specify an executable (main program of the job), its command-line arguments, job input and output files if there are any. Check the script to see how they are all set up.
+      </li>
+      <li>
+        The executable script used by <pre class="inline">submit.sh</pre> is <pre class="inline">first_test.sh</pre>. Open the file with an editor. What the script does is to append the host name of the execute node to one of the input files and rename the file, so that it will be picked up by condor and returned to the submit host. <br>
+        Packing together many input files into a single tarball is a common technique in HTCondor usage. Typically, the executable script acts as a "wrapper script" that unpacks the inputs, sets up the environment, executes the actual program you want to run, and takes care of the output file at the end.
+      </li>
+      <li>
+        Now go back to <pre class="inline">submit.sh</pre> and set <pre class="inline">LOCALTEST=false, NJOBS=10</pre>. Run the script. You will see 10 jobs submitted with a shared cluster number. Wait for a few minutes and check the output directory. You should see 10 output files, each possibly reporting a different execute node.
+      </li>
+      <li>
+        That's it! The flexibility of HTCondor makes it impossible to write a one-size-fits-all job submission package, and therefore you are encouraged to set up your own for your needs following the example of this tutorial.
       </li>
     </ol>
+    
+    <h1>Tips and guidelines</h1>
+    <ul>
+      <li>The "requirements" line of the job description can be used to restrict the execute nodes to be used. There is a script to generate the requirements string. See <a href="requirements.html">here</a> for details.</li>
+      <li>Probability of failure of individual jobs is always nonzero in a grid environment. Your task should consist of dispensable jobs, and not rely on every job returning successfully.</li>
+      <li>There is a scalability limit to HTCondor. Total number of jobs in the queue cannot exceed 180,000. User jobs may be removed from the queue when necessary.</li>
+    </ul>
 
     <h1>Monitoring running and completed jobs</h1>
     <ul>

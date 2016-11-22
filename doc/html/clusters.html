@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SubMIT</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link href="/css/common.css" rel="stylesheet">
+  </head>
+  <body>
+    <h1>Notes on individual clusters</h1>
+    <p>Connected clusters are summarized in this PDF document: <a href="data/submit.pdf">SubMIT system configuration</a></p>
+    <ul>
+      <li>Local Testbed
+        <ul>
+          <li>To test that the job can run in a batch environment, SubMIT machine itself runs a condor slot.</li>
+          <li>
+            Jobs with classads
+            <pre>
+requirements = ... && isUndefined(GLIDEIN_Site)
++Submit_LocalTest = <i>M</i>
+            </pre>
+             will match this local condor slot, where M is the number of minutes the job should run.
+          </li>
+          <li>The job runs in <pre class="inline">/var/spool/condor/execute/dir_nnnn</pre>. stdout(err) of the job is written to _condor_stdout(err).</li>
+        </ul>
+      </li>
+      <li>MIT Campus Factory
+        <ul>
+          <li>MIT Campus Factory is a virtual condor pool powered by BOSCO and Glidein technologies. It consists of various on-campus and off-campus MIT resources.</li>
+          <li>We require that users configure the jobs to match designated partitions of the individual clusters by setting the following requirements.
+            <ul>
+              <li>For CMS HEP users
+                <pre>
+requirements = ... && ((GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms")) || ...)
+                </pre>
+              </li>
+              <li>For CMS HI users
+                <pre>
+requirements = ... && ((GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cmshi")) || ...)
+                </pre>
+              </li>
+              <li>For other LNS users
+                <pre>
+requirements = ... && ((GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "boj" || BOSCOGroup == "bosco_lns") || ...)
+               </pre>
+              </li>
+            </ul>
+          </li>
+          <li>The following Classads are defined at MIT_CampusFactory:
+            <pre>
+HAS_CVMFS_cms_cern_ch, HAS_CVMFS_atlas_cern_ch, HAS_CVMFS_lhcb_cern_ch, HAS_CVMFS_alice_cern_ch, HAS_CVMFS_ams_cern_ch, HAS_CVMFS_oasis_opensciencegrid_org, HAS_CVMFS_grid_cern_ch, HAS_CVMFS_cvmfs_cmsaf_mit_edu
+            </pre>
+          </li>
+          <li>To inhibit running on Campus Factory, set the job requirement to
+            <pre>
+ requirements = ... && (isUndefined(GLIDEIN_Site) || GLIDEIN_Site != "MIT_CampusFactory")
+            </pre>
+          </li>
+        </ul>
+      </li>
+      <li>Open Science Grid
+        <ul>
+          <li>To get slots at OSG, you need to register your project to OSG.</li>
+          <li>
+            Classad
+             <pre>
++ProjectName = <i>name</i>
+            </pre>
+             will enable matching to OSG slots. Conversely, jobs will not flock to OSG without this line.
+          </li>
+          <li>The following Classads (and many more) are defined at OSG:
+            <pre>
+HAS_CVMFS_cms_cern_ch, HAS_CVMFS_ams_cern_ch, HAS_CVMFS_oasis_opensciencegrid_org, OSGVO_OS_STRING
+            </pre>
+            The only confirmed value of OSGVO_OS_STRING is "RHEL 6".
+          </li>
+          <li>OSG is the most heterogeneous pool; there is little baseline guarantee that various commands / services exist at the worker nodes. In other words, jobs must be prepared to fail.</li>
+        </ul>
+      </li>
+      <li>US CMS Analysis Pool
+        <ul>
+          <li>This pool is restricted to CMS collaborators only.</li>
+          <li>
+            Classad
+            <pre>
++DESIRED_Sites = "(comma-separated list of CMS T2 and T3 sites)"
+            </pre>
+            will enable matching to US CMS slots.
+          </li>
+          <li>The following Classads (and many more) are defined at US CMS:
+            <pre>
+GLIDEIN_REQUIRED_OS
+            </pre>
+            The only confirmed value of GLIDEIN_REQUIRED_OS is "rhel6".
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </body>
+</html>

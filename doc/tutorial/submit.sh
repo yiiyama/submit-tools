@@ -11,21 +11,23 @@
 # /work/$USER/output.
 #----------------------------------------------------------------------------------
 
+#### SETUP BEGIN ####
+
 # Directory where this script is
 THISDIR=$(cd $(dirname $0); pwd)
 
 # Path to the executable script
 EXECUTABLE=$THISDIR/first_test.sh
 
+# $(Process) is replaced by the job serial id (0 - (NJOBS-1))
+ARGUMENTS='$(Process)'
+
 # Input files (comma-separated) to be transferred to the remote host
 # Executable will see them copied in PWD
 INPUT_FILES=$THISDIR/first_test_inputs.tar.gz
 
-# $(Process) is replaced by the job serial id (0 - (NJOBS-1))
-ARGUMENTS='$(Process)'
-
 # Destination of output files (if using condor file transfer)
-OUTDIR=/work/$USER/output
+OUTDIR=/work/$USER/tutorial/output
 
 # Output files (comma-separated) to be transferred back from completed
 # jobs to $OUTDIR.  Condor will find these files in the initial PWD of
@@ -36,15 +38,13 @@ OUTDIR=/work/$USER/output
 OUTPUT_FILES='first_test_output_$(Process).txt'
 
 # Destination of log, stdout, stderr files
-LOGDIR=/work/$USER/logs
+LOGDIR=/work/$USER/tutorial/logs
 
 NJOBS=1
 
-# Uncommented -> submit to local test queue
-read -d '' LOCALTEST << EOF
-+Submit_LocalTest = 5
-requirements = isUndefined(GLIDEIN_Site)
-EOF
+LOCALTEST=true
+
+#### SETUP END ####
 
 # Make directories if necessary
 if ! [ -d $LOGDIR ]
@@ -57,8 +57,18 @@ then
   mkdir -p $OUTDIR
 fi
 
-# Now submit the job
+# If LOCALTEST=true, configure the job as such
+if $LOCALTEST
+then
+  read -d '' TESTSPEC << EOF
++Submit_LocalTest = 5
+requirements = isUndefined(GLIDEIN_Site)
+EOF
+else
+  TESTSPEC=''
+fi
 
+# Now submit the job
 echo '
 universe = vanilla
 executable = '$EXECUTABLE'
@@ -73,5 +83,5 @@ initialdir = '$OUTDIR'
 requirements = Arch == "X86_64"
 rank = Mips
 arguments = "'$ARGUMENTS'"
-'"$LOCALTEST"'
+'"$TESTSPEC"'
 queue '$NJOBS | condor_submit

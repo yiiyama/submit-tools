@@ -119,7 +119,7 @@ if 'Campus' in args.frontends and 'MIT_CampusFactory' not in args.excluded_sites
 
 if 'OSG' in args.frontends:
     other_ads.append('+ProjectName = ' + args.osg_project)
-    reqs = ['stringListMember("' + FRONTENDS['OSG'] + '", COLLECTOR_HOST_STRING, ",")']
+    reqs = ['regexp("' + FRONTENDS['OSG'] + '", COLLECTOR_HOST_STRING, "i")']
 
     # CVMFS
     if args.cvmfs_repos is not None:
@@ -140,7 +140,7 @@ if 'CMS' in args.frontends:
     with open('/var/spool/condor/cms_sites.list') as cms_sites:
         other_ads.append('+DESIRED_Sites = "' + ','.join(cms_sites.read().split()) + '"')
 
-    reqs = ['stringListMember("' + FRONTENDS['CMS'] + '", COLLECTOR_HOST_STRING, ",")']
+    reqs = ['regexp("' + FRONTENDS['CMS'] + '", COLLECTOR_HOST_STRING, "i")']
 
     # OS
     if args.os:

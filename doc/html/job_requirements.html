@@ -6,144 +6,62 @@
     <link href="css/common.css" rel="stylesheet">
   </head>
   <body>
+    
+    <h1>Requirements string generator</h1>
+    Use
+    <pre>
+reqgen.py {user}
+    </pre>
+    to print out a user-customized requirements string that can be pasted into a condor job description. There are many options to the script to fine-tune the execution targets. See the help menu (-h option) of the script for details.
 
-    <h1>Example requirements</h1>
+    <h1>Examples for writing the requirements by hand</h1>
     <ul>
       <li>Example 1: Run only on MIT Campus Factory (CMS HEP user)
-	<pre>
-          requirements = GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms") && HAS_CVMFS_cms_cern_ch
-	</pre>
-	For other users, "bosco_cms" should be replaced by "bosco_cmshi" (CMS HI) or "bosco_lns" (other LNS). HAS_CVMFS_cms_cern_ch is only necessary if you need CMS CVMFS.
+        <pre>
+requirements = GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms") && HAS_CVMFS_cms_cern_ch
+        </pre>
+        For other users, "bosco_cms" should be replaced by "bosco_cmshi" (CMS HI) or "bosco_lns" (other LNS). HAS_CVMFS_cms_cern_ch is only necessary if you need CMS CVMFS.
       </li>
       <li>Example 2: Running on a specific MIT resource, e.g. T2_US_MIT
-	<pre>
-	  requirements = GLIDEIN_Site == "MIT_CampusFactory" && BOSCOCluster == "ce03.cmsaf.mit.edu" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms") && HAS_CVMFS_cms_cern_ch
-	</pre>
+        <pre>
+requirements = GLIDEIN_Site == "MIT_CampusFactory" && BOSCOCluster == "ce03.cmsaf.mit.edu" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms") && HAS_CVMFS_cms_cern_ch
+        </pre>
       </li>
       <li>Example 3: Enabling OSG
-	<pre>
-          +ProjectName = MyProject
-          requirements = \
-            (OSGVO_OS_STRING == "RHEL 6" && HAS_CVMFS_cms_cern_ch) || \
-            (GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms") && HAS_CVMFS_cms_cern_ch)
-	</pre>
+        <pre>
++ProjectName = MyProject
+requirements = \
+  (OSGVO_OS_STRING == "RHEL 6" && HAS_CVMFS_cms_cern_ch) || \
+  (GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms") && HAS_CVMFS_cms_cern_ch)
+        </pre>
       </li>
       <li>Example 4: Adding US CMS
-	<pre>
-          +ProjectName = MyProject
-          +DESIRED_Sites = "site1,site2,..."
-          requirements = \
-            (OSGVO_OS_STRING == "RHEL 6" && HAS_CVMFS_cms_cern_ch) || \
-            GLIDEIN_REQUIRED_OS == "rhel6" || \
-            (GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms") && HAS_CVMFS_cms_cern_ch)
-	</pre>
+        <pre>
++ProjectName = MyProject
++DESIRED_Sites = "site1,site2,..."
+requirements = \
+  (OSGVO_OS_STRING == "RHEL 6" && HAS_CVMFS_cms_cern_ch) || \
+  GLIDEIN_REQUIRED_OS == "rhel6" || \
+  (GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms") && HAS_CVMFS_cms_cern_ch)
+        </pre>
       </li>
       <li>Example 5: Avoiding certain sites
         <pre>
-          +ProjectName = MyProject
-          +DESIRED_Sites = "site1,site2,..."
-          requirements = ( \
-            (OSGVO_OS_STRING == "RHEL 6" && HAS_CVMFS_cms_cern_ch) || \
-            GLIDEIN_REQUIRED_OS == "rhel6" || \
-            (GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms") && HAS_CVMFS_cms_cern_ch) \
-          ) && ( \
-            isUndefined(GLIDEIN_Entry_Name) || \
-            !stringListMember(GLIDEIN_Entry_Name, "CMS_T2_US_Nebraska_Red_op,CMS_T2_US_Nebraska_Red_gw1_op,CMS_T2_US_Nebraska_Red_gw2_op,CMS_T3_MX_Cinvestav_proton_work,CMS_T3_US_Omaha_tusker,CMSHTPC_T3_US_Omaha_tusker,Glow_US_Syracuse_condor,Glow_US_Syracuse_condor-ce01,Gluex_US_NUMEP_grid1,HCC_US_BNL_gk01,HCC_US_BNL_gk02,HCC_US_BU_atlas-net2,OSG_US_FIU_HPCOSGCE,OSG_US_Hyak_osg,OSG_US_UConn_gluskap,OSG_US_SMU_mfosgce", ",") \
-          )                               
++ProjectName = MyProject
++DESIRED_Sites = "site1,site2,..."
+requirements = ( \
+  (OSGVO_OS_STRING == "RHEL 6" && HAS_CVMFS_cms_cern_ch) || \
+  GLIDEIN_REQUIRED_OS == "rhel6" || \
+  (GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms") && HAS_CVMFS_cms_cern_ch) \
+) && ( \
+  isUndefined(GLIDEIN_Entry_Name) || \
+  !stringListMember(GLIDEIN_Entry_Name, "CMS_T2_US_Nebraska_Red_op,CMS_T2_US_Nebraska_Red_gw1_op,CMS_T2_US_Nebraska_Red_gw2_op,CMS_T3_MX_Cinvestav_proton_work,CMS_T3_US_Omaha_tusker,CMSHTPC_T3_US_Omaha_tusker,Glow_US_Syracuse_condor,Glow_US_Syracuse_condor-ce01,Gluex_US_NUMEP_grid1,HCC_US_BNL_gk01,HCC_US_BNL_gk02,HCC_US_BU_atlas-net2,OSG_US_FIU_HPCOSGCE,OSG_US_Hyak_osg,OSG_US_UConn_gluskap,OSG_US_SMU_mfosgce", ",") \
+)                               
         </pre>
       </li>
     </ul>
-    More examples will come.
 
-    <h1>Notes on individual clusters</h1>
-    <p>Connected clusters are summarized in this PDF document: <a href="data/submit.pdf">SubMIT system configuration</a></p>
-    <ul>
-      <li>Local Testbed
-        <ul>
-          <li>To test that the job can run in a batch environment, SubMIT machine itself runs a condor slot.</li>
-          <li>
-            Jobs with classads
-            <pre>
-               requirements = ... && isUndefined(GLIDEIN_Site)
-               +Submit_LocalTest = <i>M</i>
-            </pre>
-             will match this local condor slot, where M is the number of minutes the job should run.
-          </li>
-          <li>The job runs in <pre class="inline">/var/spool/condor/execute/dir_nnnn</pre>. stdout(err) of the job is written to _condor_stdout(err).</li>
-        </ul>
-      </li>
-      <li>MIT Campus Factory
-        <ul>
-          <li>MIT Campus Factory is a virtual condor pool powered by BOSCO and Glidein technologies. It consists of various on-campus and off-campus MIT resources.</li>
-          <li>We require that users configure the jobs to match designated partitions of the individual clusters by setting the following requirements.
-            <ul>
-              <li>For CMS HEP users
-                <pre>
-                  requirements = ... && ((GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms")) || ...)
-                </pre>
-              </li>
-              <li>For CMS HI users
-                <pre>
-                  requirements = ... && ((GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cmshi")) || ...)
-                </pre>
-              </li>
-              <li>For other LNS users
-                <pre>
-                  requirements = ... && ((GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "boj" || BOSCOGroup == "bosco_lns") || ...)
-                </pre>
-              </li>
-            </ul>
-          </li>
-          <li>The following Classads are defined at MIT_CampusFactory:
-            <pre>
-              HAS_CVMFS_cms_cern_ch, HAS_CVMFS_atlas_cern_ch, HAS_CVMFS_lhcb_cern_ch, HAS_CVMFS_alice_cern_ch, HAS_CVMFS_ams_cern_ch, HAS_CVMFS_oasis_opensciencegrid_org, HAS_CVMFS_grid_cern_ch, HAS_CVMFS_cvmfs_cmsaf_mit_edu
-            </pre>
-          </li>
-          <li>To inhibit running on Campus Factory, set the job requirement to
-            <pre>
-               requirements = ... && (isUndefined(GLIDEIN_Site) || GLIDEIN_Site != "MIT_CampusFactory")
-            </pre>
-          </li>
-        </ul>
-      </li>
-      <li>Open Science Grid
-        <ul>
-          <li>To get slots at OSG, you need to register your project to OSG.</li>
-          <li>
-            Classad
-             <pre>
-              +ProjectName = <i>name</i>
-            </pre>
-             will enable matching to OSG slots. Conversely, jobs will not flock to OSG without this line.
-          </li>
-          <li>The following Classads (and many more) are defined at OSG:
-            <pre>
-              HAS_CVMFS_cms_cern_ch, HAS_CVMFS_ams_cern_ch, HAS_CVMFS_oasis_opensciencegrid_org, OSGVO_OS_STRING
-            </pre>
-            The only confirmed value of OSGVO_OS_STRING is "RHEL 6".
-          </li>
-          <li>OSG is the most heterogeneous pool; there is little baseline guarantee that various commands / services exist at the worker nodes. In other words, jobs must be prepared to fail.</li>
-        </ul>
-      </li>
-      <li>US CMS Analysis Pool
-        <ul>
-          <li>This pool is restricted to CMS collaborators only.</li>
-          <li>
-            Classad
-            <pre>
-              +DESIRED_Sites = "(comma-separated list of CMS T2 and T3 sites)"
-            </pre>
-            will enable matching to US CMS slots.
-          </li>
-          <li>The following Classads (and many more) are defined at US CMS:
-            <pre>
-              GLIDEIN_REQUIRED_OS
-            </pre>
-            The only confirmed value of GLIDEIN_REQUIRED_OS is "rhel6".
-          </li>
-        </ul>
-      </li>
-    </ul>
+
   </body>
   <footer>
   </footer>
