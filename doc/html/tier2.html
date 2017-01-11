@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Migrating to SubMIT from MIT T2</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link href="css/common.css" rel="stylesheet">
+  </head>
+  <body>
+    <h1>Important Differences between SubMIT and T2</h1>
+    <ul>
+      <li>SubMIT does not have a large user local space. Large job output should be copied to T2 /mnt/hadoop via gfal-copy or lcg-cp in the job executable.</li>
+      <li>HTCondor at SubMIT cannot access the user home directory (AFS authenticates with kerberos, the system user condor does not have your ticket). All job inputs and scripts should be placed within /work/{user}.</li>
+      <li>What else?</li>
+    </ul>
+
+    <h1>Running a CMSSW Job</h1>
+    <ul>
+      <li>/cvmfs/cms.cern.ch is mounted on SubMIT, and therefore most of CMSSW setup should work without additional changes.</li>
+      <li>The only difference is in Frontier (i.e. GlobalTag) connection. The node is not part of any CMS site and therefore needs to be manually pointed to a squid proxy:
+	<pre>
+	  process.GlobalTag.connect = 'frontier://(proxyurl=http://squid.cmsaf.mit.edu:3128)(proxyurl=http://squid1.cmsaf.mit.edu:3128)(proxyurl=http://squid2.cmsaf.mit.edu:3128)(serverurl=serverurl=http://cmsfrontier.cern.ch:8000/FrontierProd)/CMS_CONDITIONS'
+	</pre>
+	This is only necessary when executing cmsRun directly on submit.mit.edu. Be sure to remove the line for the CMSSW configuration that is shipped to the condor pool.
+      </li>
+    </ul>
+  </body>
+  <footer>
+  </footer>
+</html>

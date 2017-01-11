@@ -6,17 +6,35 @@
     <link href="/css/common.css" rel="stylesheet">
   </head>
   <body>
-    <h2>Interesting Links</h2> 
+    <h2>Contents</h2>
+    <ul>
+      <li><a href="#links">Interesting Links</a></li>
+      <li><a href="#introduction">Introduction</a></li>
+      <li><a href="#usage">Using SubMIT</a></li>
+      <li><a href="#tutorial">Job Submission Tutorial</a></li>
+      <li>
+        <a href="#tips">Tips and Guidelines</a>
+        <ul>
+          <li><a href="#tier2">Migrating from MIT T2</a></li>
+        </ul>
+      </li>
+      <li><a href="#monitor">Monitoring Running and Completed Jobs</a></li>
+    </ul>
+
+    <a name="links"></a>
+    <h1>Interesting Links</h1> 
     <p><a href="condormon/index.php">Condormon</a> for tracking jobs, <a href="condor_history/index.html">JobReports</a> search and analyse completed jobs.</p>
     <p><a href="https://research.cs.wisc.edu/htcondor/">HTCondor website</a> for full documentation of HTCondor.</p>
     <p><a href="requirements.html">Documentation</a> of the requirements line in the job description.</p>
     <p><a href="clusters.html">Documentation</a> of clusters subMIT connects to.</p>
     <hr>
 
+    <a name="introduction"></a>
     <h1>Introduction</h1>
     <p>SubMIT is a batch submission interface to on- and off-campus computing resources. It uses <a href="https://research.cs.wisc.edu/htcondor/">HTCondor</a> as the batch job management system and uses its "flocking" mechanism to connect multiple computing clusters into a single pool. At most clusters, jobs submitted from SubMIT runs "opportunistically", i.e., with lower priority than the jobs which use the clusters as dedicated resources.</p>
     <p>Cluster composition is transparent to the users, but the users can choose the resource to use if needed. Currently available clusters are: <a href="https://www.opensciencegrid.org/">Open Science Grid (OSG)</a>; CMS analysis pool (open to CMS collaborators only); Engage HPC at <a href="https://eapsweb.mit.edu/">MIT Earth, Atmospheric, and Planetary Sciences</a>; <a href="http://www.cmsaf.mit.edu/">T2_US_MIT</a>; and <a href="http://t3serv001.mit.edu/">T3_US_MIT</a>.</p>
     
+    <a name="usage"></a>
     <h1>Using SubMIT</h1>
     <ul>
       <li>Only users in LNS <pre class="inline">mit-submit</pre> user group are able to log into the machine. To apply for an account, submit an <a href="http://web.mit.edu/lns/services/compserv/requests/acctappl.html">LNS account application form</a> with a comment specifying that the account should be added to <pre class="inline">mit-submit</pre>.</li>
@@ -26,7 +44,8 @@
       <li>Since /work is also not too big, you will have to have an external storage somewhere if your jobs produce large outputs. Transfer of the output files to the storage should be done within your jobs.</li>
     </ul>
 
-    <h1>Job submission tutorial</h1>
+    <a name="tutorial"></a>
+    <h1>Job Submission Tutorial</h1>
     If you are unfamiliar with HTCondor, you can get an overview of how to prepare a task and submit jobs following this tutorial. Below, {user} must be replaced by your user name.
     <ol>
       <li>
@@ -89,18 +108,23 @@ submit.mit.edu
         That's it! The flexibility of HTCondor makes it impossible to write a one-size-fits-all job submission package, and therefore you are encouraged to set up your own for your needs following the example of this tutorial.
       </li>
     </ol>
-    
-    <h1>Tips and guidelines</h1>
+
+    <a name="tips"></a>
+    <h1>Tips and Guidelines</h1>
     <ul>
       <li>The "requirements" line of the job description can be used to restrict the execute nodes to be used. There is a script to generate the requirements string. See <a href="requirements.html">here</a> for details.</li>
       <li>Probability of failure of individual jobs is always nonzero in a grid environment. Your task should consist of dispensable jobs, and not rely on every job returning successfully.</li>
       <li>There is a scalability limit to HTCondor. Total number of jobs in the queue cannot exceed 180,000. User jobs may be removed from the queue when necessary.</li>
+      <a name="tier2"><li><a href="tier2.html">Migrating from MIT T2</a></li></a>
     </ul>
 
-    <h1>Monitoring running and completed jobs</h1>
+    <a name="monitoring"></a>
+    <h1>Monitoring Running and Completed Jobs</h1>
     <ul>
       <li><a href="condormon/index.php">Condormon</a> for tracking jobs currently in queue (idle/running/held)</li>
       <li><a href="condor_history/index.html">JobReports</a> for interactive search and analysis of completed jobs</li>
     </ul>
+
+    <div style="width:100%;height:1000px;"></div>
   </body>
 </html>
