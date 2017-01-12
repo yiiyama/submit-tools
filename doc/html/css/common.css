@@ -1,0 +1,20 @@
+body {
+    font: 18px sans-serif;
+    color: black;    
+}
+
+pre.inline {
+    display: inline;
+}
+
+h1 {
+    font-size: 20px;
+}
+
+h2 {
+    font-size: 16px;
+}
+
+h3 {
+    font-size: 12px;
+}

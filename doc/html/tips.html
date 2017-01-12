@@ -6,6 +6,36 @@
     <link href="/css/common.css" rel="stylesheet">
   </head>
   <body>
+    <h3>Index</h3>
+    <ul>
+      <li><a href="#general">General notes</a></li>
+      <li>
+        <a href="#general">The requirements line</a>
+        <ul>
+          <li><a href="#manual">Examples for writing the requirements by hand</a></li>
+        </ul>
+      </li>
+      <li>
+        <a href="#tier2">Migrating from CMS MIT T2</a>
+        <ul>
+          <li><a href="#restrict-tier2">Restricting your jobs to MIT T2</a></li>
+          <li><a href="#tier2-difference">Important differences between SubMIT and T2</a></li>
+          <li><a href="#deprecated">Operations no longer possibled at SubMIT</a></li>
+          <li><a href="#t2storage">Copy tools and file permissions</a></li>
+          <li><a href="#cmssw">Running a CMSSW job</a></li>
+        </ul>
+      </li>
+      <li>
+        <a href="#tricks">Condor tricks</a>
+        <ul>
+          <li><a href="jobid">Making jobs identifiable</a></li>
+          <li><a href="logchirp">Using condor_chirp for semi-realtime logging</a></li>
+        </ul>
+      </li>
+    </ul>
+
+    <hr>
+
     <section id="general">
       <h1>General notes</h1>
       <ul>
@@ -87,11 +117,11 @@ requirements = GLIDEIN_Site == "MIT_CampusFactory" && BOSCOCluster == "ce03.cmsa
       </article>
 
       <article id="tier2-difference">
-        <h2>Important Differences between SubMIT and T2</h2>
+        <h2>Important differences between SubMIT and T2</h2>
         <ul>
           <li>SubMIT does not have a large user local space. Large job output should be copied to T2 /mnt/hadoop via gfal-copy or lcg-cp in the job executable. If you restrict your jobs to run at T2, it is possible to use normal cp and mv, but the commands will be executed by the user of the BOSCOGroup.</li>
           <li>HTCondor at SubMIT cannot access the user home directory (AFS authenticates with kerberos, the system user condor does not have your ticket). All job inputs and scripts should be placed within /work/{user}.</li>
-        </ul>
+p        </ul>
       </article>
 
       <article id="deprecated">
@@ -103,7 +133,7 @@ requirements = GLIDEIN_Site == "MIT_CampusFactory" && BOSCOCluster == "ce03.cmsa
       </article>
       
       <article id="t2storage">
-        <h2>File permission and operations</h2>
+        <h2>Copy tools and file permissions</h2>
         <p>Recommended method for writing to T2 storage is lcg-cp or gfal-copy. By reading inputs via CVMFS or xrootd and writing the output with such grid tools, your jobs will be fully unbound and can run on any resource.</p>
         <p>To copy back the job output to T2, use the following lines at the end of your executable script (bash):
           <pre>
@@ -119,7 +149,7 @@ fi
       </article>
 
       <article id="cmssw">
-        <h2>Running a CMSSW Job</h2>
+        <h2>Running a CMSSW job</h2>
         <ul>
           <li>/cvmfs/cms.cern.ch is mounted on SubMIT, and therefore most of CMSSW setup should work without additional changes.</li>
           <li>The only difference is in Frontier (i.e. GlobalTag) connection. The node is not part of any CMS site and therefore needs to be manually pointed to a squid proxy:
