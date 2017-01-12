@@ -1,7 +1,7 @@
 <?php
 $rrdpath = '/var/run/condormon';
 $title = 'subMIT current job status';
-$rrdcolumns = array('running-t2', 'running-t3', 'running-eaps', 'running-osg', 'running-uscms', 'idle', 'held');
+$rrdcolumns = array('running-t2', 'running-t3', 'running-eaps', 'running-osg', 'running-uscms', 'running-cmsitb', 'idle', 'held');
 
 function lastEntry($rrd)
 {
@@ -145,11 +145,10 @@ foreach ($rrds as $rrd) {
   $html .= '<td>' . $lastEntry['idle'] . '</td>';
   $html .= '<td>' . $lastEntry['held'] . '</td>';
   $html .= '<td>' . $runTotal . '</td>';
-  $html .= '<td>' . $lastEntry['running-t2'] . '</td>';
-  $html .= '<td>' . $lastEntry['running-t3'] . '</td>';
-  $html .= '<td>' . $lastEntry['running-eaps'] . '</td>';
-  $html .= '<td>' . $lastEntry['running-osg'] . '</td>';
-  $html .= '<td>' . $lastEntry['running-uscms'] . '</td>';
+  foreach ($rrdcolumns as $key) {
+    if (strpos($key, 'running-') === 0)
+      $html .= '<td>' . $lastEntry[$key] . '</td>';
+  }
   $html .= '<td class="total">' . $userTotal . '</td>' . "\n";
   $html .= '      </tr>' . "\n";
 
@@ -172,11 +171,10 @@ $html .= '        <td class="user">Total</td>';
 $html .= '<td>' . $colTotal['idle'] . '</td>';
 $html .= '<td>' . $colTotal['held'] . '</td>';
 $html .= '<td>' . $runTotal . '</td>';
-$html .= '<td>' . $colTotal['running-t2'] . '</td>';
-$html .= '<td>' . $colTotal['running-t3'] . '</td>';
-$html .= '<td>' . $colTotal['running-eaps'] . '</td>';
-$html .= '<td>' . $colTotal['running-osg'] . '</td>';
-$html .= '<td>' . $colTotal['running-uscms'] . '</td>';
+foreach ($rrdcolumns as $key) {
+  if (strpos($key, 'running-') === 0)
+    $html .= '<td>' . $colTotal[$key] . '</td>';  
+}
 $html .= '<td class="total">' . $total . '</td>' . "\n";
 $html .= '      </tr>' . "\n";
 
