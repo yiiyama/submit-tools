@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SubMIT - Tutorial</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link href="/css/common.css" rel="stylesheet">
+  </head>
+  <body>
+    <h1>Job Submission Tutorial</h1>
+    If you are unfamiliar with HTCondor, you can get an overview of how to prepare a task and submit jobs following this tutorial. Below, {user} must be replaced by your user name.
+    <ol>
+      <li>
+        Copy <pre class="inline">/usr/local/share/tutorial</pre> into your work area:
+        <pre>
+cp -r /usr/local/share/tutorial /work/{user}/
+        </pre>
+      </li>
+      <li>
+        Submit a job (will look into the details later):
+        <pre>
+cd /work/{user}/tutorial/first_test
+./submit.sh
+        </pre>
+      </li>
+      <li>
+        Check your job status:
+        <pre>
+condor_q {user}
+        </pre>
+        You will see an output like this:
+        <pre>
+-- Schedd: SUBMIT.MIT.EDU : &lt;18.77.2.251:9615?...
+ ID      OWNER            SUBMITTED     RUN_TIME ST PRI SIZE CMD               
+298263.0   yiiyama        11/22 12:54   0+00:00:00 I  0   0.0  first_test.sh 0
+
+1 jobs; 0 completed, 0 removed, 1 idle, 0 running, 0 held, 0 suspended
+        </pre>
+        There will be a line for each of your jobs currently in queue. Status "I" means that the job has not been picked up by an execute node. When execution starts, the status changes to "R". When the job completes or fails, depeding on the setting used at the submission time, the job will either disappear from the queue or will be kept with "C"=completed or "H"=held status.
+        To remove a job from the queue any time, issue the command
+        <pre>
+condor_rm {jobid}
+        </pre>
+        where {jobid} can be the "job cluster" number (298263 in the example above) or the full job id (298263.0). Removing jobs by cluster number is used when all jobs that are submitted at the same time and thus share a cluster number should be removed. It is also possible to remove all jobs of a user: <pre class="inline">condor_rm {user}</pre>.
+      </li>
+      <li>
+        Once your job completes and disappears from the queue, check the output:
+        <pre>
+cat /work/{user}/tutorial/output/first_test_output_0.txt
+        </pre>
+        You should see the following:
+        <pre>
+Hello! This is file 0 opened at: 
+submit.mit.edu
+        </pre>
+        This means that a job successfully ran on the local condor testbed.
+      </li>
+      <li>
+        Now we should take a look at the scripts. First open <pre class="inline">submit.sh</pre> with your favorite text editor. You will find several lines of setup options, followed by some logistical lines, and at end of the script, a command <pre class="inline">condor_submit</pre>. This command parses the job description generated in the preceding lines and submits a job to the "pool" of execute nodes. <br>
+        In the job description, you must specify an executable (main program of the job), its command-line arguments, job input and output files if there are any. Check the script to see how they are all set up.
+      </li>
+      <li>
+        The executable script used by <pre class="inline">submit.sh</pre> is <pre class="inline">first_test.sh</pre>. Open the file with an editor. What the script does is to append the host name of the execute node to one of the input files and rename the file, so that it will be picked up by condor and returned to the submit host. <br>
+        Packing together many input files into a single tarball is a common technique in HTCondor usage. Typically, the executable script acts as a "wrapper script" that unpacks the inputs, sets up the environment, executes the actual program you want to run, and takes care of the output file at the end.
+      </li>
+      <li>
+        Now go back to <pre class="inline">submit.sh</pre> and set <pre class="inline">LOCALTEST=false, NJOBS=10</pre>. Run the script. You will see 10 jobs submitted with a shared cluster number. Wait for a few minutes and check the output directory. You should see 10 output files, each possibly reporting a different execute node.
+      </li>
+      <li>
+        That's it! The flexibility of HTCondor makes it impossible to write a one-size-fits-all job submission package, and therefore you are encouraged to set up your own for your needs following the example of this tutorial.
+      </li>
+    </ol>
+  </body>
+</html>

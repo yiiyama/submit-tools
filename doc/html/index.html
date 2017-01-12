@@ -6,125 +6,30 @@
     <link href="/css/common.css" rel="stylesheet">
   </head>
   <body>
-    <h2>Contents</h2>
+    <h3>Interesting Links</h3>
     <ul>
-      <li><a href="#links">Interesting Links</a></li>
-      <li><a href="#introduction">Introduction</a></li>
-      <li><a href="#usage">Using SubMIT</a></li>
-      <li><a href="#tutorial">Job Submission Tutorial</a></li>
-      <li>
-        <a href="#tips">Tips and Guidelines</a>
-        <ul>
-          <li><a href="#tier2">Migrating from MIT T2</a></li>
-        </ul>
-      </li>
-      <li><a href="#monitor">Monitoring Running and Completed Jobs</a></li>
+      <li><a href="condormon/index.php">Condormon</a> for tracking jobs, <a href="condor_history/index.html">JobReports</a> search and analyse completed jobs.</li>
+      <li><a href="https://research.cs.wisc.edu/htcondor/">HTCondor website</a> for full documentation of HTCondor.</li>
+      <li><a href="tips.html#tier2">Notes on migrating from CMS Tier-2</a>.</li>
     </ul>
 
-    <a name="links"></a>
-    <h1>Interesting Links</h1> 
-    <p><a href="condormon/index.php">Condormon</a> for tracking jobs, <a href="condor_history/index.html">JobReports</a> search and analyse completed jobs.</p>
-    <p><a href="https://research.cs.wisc.edu/htcondor/">HTCondor website</a> for full documentation of HTCondor.</p>
-    <p><a href="requirements.html">Documentation</a> of the requirements line in the job description.</p>
-    <p><a href="clusters.html">Documentation</a> of clusters subMIT connects to.</p>
     <hr>
 
-    <a name="introduction"></a>
-    <h1>Introduction</h1>
-    <p>SubMIT is a batch submission interface to on- and off-campus computing resources. It uses <a href="https://research.cs.wisc.edu/htcondor/">HTCondor</a> as the batch job management system and uses its "flocking" mechanism to connect multiple computing clusters into a single pool. At most clusters, jobs submitted from SubMIT runs "opportunistically", i.e., with lower priority than the jobs which use the clusters as dedicated resources.</p>
-    <p>Cluster composition is transparent to the users, but the users can choose the resource to use if needed. Currently available clusters are: <a href="https://www.opensciencegrid.org/">Open Science Grid (OSG)</a>; CMS analysis pool (open to CMS collaborators only); Engage HPC at <a href="https://eapsweb.mit.edu/">MIT Earth, Atmospheric, and Planetary Sciences</a>; <a href="http://www.cmsaf.mit.edu/">T2_US_MIT</a>; and <a href="http://t3serv001.mit.edu/">T3_US_MIT</a>.</p>
-    
-    <a name="usage"></a>
-    <h1>Using SubMIT</h1>
-    <ul>
-      <li>Only users in LNS <pre class="inline">mit-submit</pre> user group are able to log into the machine. To apply for an account, submit an <a href="http://web.mit.edu/lns/services/compserv/requests/acctappl.html">LNS account application form</a> with a comment specifying that the account should be added to <pre class="inline">mit-submit</pre>.</li>
-      <li>Each user has an AFS home area (/afs/lns.mit.edu/user/<i>user</i>, quota 2 GB) that is managed together with other LNS users and a local work area (/work/<i>user</i>, quota 20 GB). The home area is intended for source code etc. that require backups but are small. /work is *not* backed up (but is on RAID 5, so data is protected against a single disk failure).</li>
-      <li>The machine itself has 40 CPUs and a huge memory, so it will not be a problem to e.g. compile or run short test jobs interactively.</li>
-      <li>An LNS.MIT.EDU kerberos ticket is required to even browse your home area (you will obtain a ticket automatically when you log in). This means that system processes (e.g. condor) may not be able to see files under your home directory. Therefore you will probably need to set up most of your workflows to use an area under /work.</li>
-      <li>Since /work is also not too big, you will have to have an external storage somewhere if your jobs produce large outputs. Transfer of the output files to the storage should be done within your jobs.</li>
-    </ul>
+    <section id="intro">
+      <h1>Introduction</h1>
+      <p>SubMIT is a batch submission interface to on- and off-campus computing resources. It uses <a href="https://research.cs.wisc.edu/htcondor/">HTCondor</a> as the batch job management system and uses its "flocking" mechanism to connect multiple computing clusters into a single pool. At most clusters, jobs submitted from SubMIT runs "opportunistically", i.e., with lower priority than the jobs which use the clusters as dedicated resources.</p>
+      <p>Cluster composition is transparent to the users, but the users can choose the resource to use if needed. Currently available clusters are: <a href="https://www.opensciencegrid.org/">Open Science Grid (OSG)</a>; CMS analysis pool (open to CMS collaborators only); Engage HPC at <a href="https://eapsweb.mit.edu/">MIT Earth, Atmospheric, and Planetary Sciences</a>; <a href="http://www.cmsaf.mit.edu/">T2_US_MIT</a>; and <a href="http://t3serv001.mit.edu/">T3_US_MIT</a>.</p>
+    </section>
 
-    <a name="tutorial"></a>
-    <h1>Job Submission Tutorial</h1>
-    If you are unfamiliar with HTCondor, you can get an overview of how to prepare a task and submit jobs following this tutorial. Below, {user} must be replaced by your user name.
-    <ol>
-      <li>
-        Copy <pre class="inline">/usr/local/share/tutorial</pre> into your work area:
-        <pre>
-cp -r /usr/local/share/tutorial /work/{user}/
-        </pre>
-      </li>
-      <li>
-        Submit a job (will look into the details later):
-        <pre>
-cd /work/{user}/tutorial
-./submit.sh
-        </pre>
-      </li>
-      <li>
-        Check your job status:
-        <pre>
-condor_q {user}
-        </pre>
-        You will see an output like this:
-        <pre>
--- Schedd: SUBMIT.MIT.EDU : &lt;18.77.2.251:9615?...
- ID      OWNER            SUBMITTED     RUN_TIME ST PRI SIZE CMD               
-298263.0   yiiyama        11/22 12:54   0+00:00:00 I  0   0.0  first_test.sh 0
-
-1 jobs; 0 completed, 0 removed, 1 idle, 0 running, 0 held, 0 suspended
-        </pre>
-        There will be a line for each of your jobs currently in queue. Status "I" means that the job has not been picked up by an execute node. When execution starts, the status changes to "R". When the job completes or fails, depeding on the setting used at the submission time, the job will either disappear from the queue or will be kept with "C"=completed or "H"=held status.
-        To remove a job from the queue any time, issue the command
-        <pre>
-condor_rm {jobid}
-        </pre>
-        where {jobid} can be the "job cluster" number (298263 in the example above) or the full job id (298263.0). Removing jobs by cluster number is used when all jobs that are submitted at the same time and thus share a cluster number should be removed. It is also possible to remove all jobs of a user: <pre class="inline">condor_rm {user}</pre>.
-      </li>
-      <li>
-        Once your job completes and disappears from the queue, check the output:
-        <pre>
-cat /work/{user}/tutorial/output/first_test_output_0.txt
-        </pre>
-        You should see the following:
-        <pre>
-Hello! This is file 0 opened at: 
-submit.mit.edu
-        </pre>
-        This means that a job successfully ran on the local condor testbed.
-      </li>
-      <li>
-        Now we should take a look at the scripts. First open <pre class="inline">submit.sh</pre> with your favorite text editor. You will find several lines of setup options, followed by some logistical lines, and at end of the script, a command <pre class="inline">condor_submit</pre>. This command parses the job description generated in the preceding lines and submits a job to the "pool" of execute nodes. <br>
-        In the job description, you must specify an executable (main program of the job), its command-line arguments, job input and output files if there are any. Check the script to see how they are all set up.
-      </li>
-      <li>
-        The executable script used by <pre class="inline">submit.sh</pre> is <pre class="inline">first_test.sh</pre>. Open the file with an editor. What the script does is to append the host name of the execute node to one of the input files and rename the file, so that it will be picked up by condor and returned to the submit host. <br>
-        Packing together many input files into a single tarball is a common technique in HTCondor usage. Typically, the executable script acts as a "wrapper script" that unpacks the inputs, sets up the environment, executes the actual program you want to run, and takes care of the output file at the end.
-      </li>
-      <li>
-        Now go back to <pre class="inline">submit.sh</pre> and set <pre class="inline">LOCALTEST=false, NJOBS=10</pre>. Run the script. You will see 10 jobs submitted with a shared cluster number. Wait for a few minutes and check the output directory. You should see 10 output files, each possibly reporting a different execute node.
-      </li>
-      <li>
-        That's it! The flexibility of HTCondor makes it impossible to write a one-size-fits-all job submission package, and therefore you are encouraged to set up your own for your needs following the example of this tutorial.
-      </li>
-    </ol>
-
-    <a name="tips"></a>
-    <h1>Tips and Guidelines</h1>
-    <ul>
-      <li>The "requirements" line of the job description can be used to restrict the execute nodes to be used. There is a script to generate the requirements string. See <a href="requirements.html">here</a> for details.</li>
-      <li>Probability of failure of individual jobs is always nonzero in a grid environment. Your task should consist of dispensable jobs, and not rely on every job returning successfully.</li>
-      <li>There is a scalability limit to HTCondor. Total number of jobs in the queue cannot exceed 180,000. User jobs may be removed from the queue when necessary.</li>
-      <a name="tier2"><li><a href="tier2.html">Migrating from MIT T2</a></li></a>
-    </ul>
-
-    <a name="monitoring"></a>
-    <h1>Monitoring Running and Completed Jobs</h1>
-    <ul>
-      <li><a href="condormon/index.php">Condormon</a> for tracking jobs currently in queue (idle/running/held)</li>
-      <li><a href="condor_history/index.html">JobReports</a> for interactive search and analysis of completed jobs</li>
-    </ul>
-
-    <div style="width:100%;height:1000px;"></div>
+    <section id="contents">
+      <h1>Contents</h1>
+      <ol>
+        <li><a href="usage.html">Using SubMIT</a></li>
+        <li><a href="clusters.html">Clusters</a></li>
+        <li><a href="tutorial.html">Job submission tutorial</a></li>
+        <li><a href="tips.html">Tips and guildelines</a></li>
+        <li><a href="monitoring.html">Monitoring tools</a></li>
+      </ol>
+    </section>
   </body>
 </html>
