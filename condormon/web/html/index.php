@@ -2,6 +2,7 @@
 $rrdpath = '/var/run/condormon';
 $title = 'subMIT current job status';
 $rrdcolumns = array('running-t2', 'running-t3', 'running-eaps', 'running-osg', 'running-uscms', 'running-cmsitb', 'idle', 'held');
+$titles = array('MIT' => array('T2_US_MIT' => 'running-t2', 'T3_US_MIT' => 'running-t3', 'EAPS' => 'running-eaps'), 'OSG' => 'running-osg', 'USCMS' => 'running-uscms', 'CMSITB' => 'running-cmsitb');
 
 function lastEntry($rrd)
 {
@@ -98,13 +99,36 @@ $html .= '  </head>' . "\n";
 $html .= '  <body>' . "\n";
 $html .= '    <table>' . "\n";
 $html .= '      <tr>' . "\n";
-$html .= '        <th rowspan="3" class="user">User</th><th rowspan="3">Idle</th><th rowspan="3">Held</th><th rowspan="3" style="border-right:none;">Running</th><th colspan="5" style="border-left:none;">&nbsp;</th><th rowspan="3" class="total">Total</th>' . "\n";
+
+$nrunning = 0;
+foreach ($titles as $title => $target) {
+  if (is_array($target))
+    $nrunning += count($target);
+  else
+    $nrunning += 1;
+}
+
+$html .= '        <th rowspan="3" class="user">User</th><th rowspan="3">Idle</th><th rowspan="3">Held</th><th rowspan="3" style="border-right:none;">Running</th><th colspan="' . $nrunning . '" style="border-left:none;">&nbsp;</th><th rowspan="3" class="total">Total</th>' . "\n";
 $html .= '      </tr>' . "\n";
 $html .= '      <tr>' . "\n";
-$html .= '        <th colspan="3">MIT</th><th rowspan="2">OSG</th><th rowspan="2">USCMS</th>' . "\n";
+$html .= '        ';
+foreach ($titles as $title => $target) {
+  if (is_array($target))
+    $html .= '<th colspan="' . count($target) . '">' . $title . '</th>';
+  else
+    $html .= '<th rowspan="2">' . $title . '</th>';
+}
+$html .= "\n";
 $html .= '      </tr>' . "\n";
 $html .= '      <tr>' . "\n";
-$html .= '        <th>T2_US_MIT</th><th>T3_US_MIT</th><th>EAPS</th>' . "\n";
+$html .= '        ';
+foreach ($titles as $title => $target) {
+  if (!is_array($target))
+    continue;
+  foreach ($target as $subtitle => $counter) {
+    $html .= '<th>' . $subtitle . '</th>';
+}
+$html .= "\n";
 $html .= '      </tr>' . "\n";
 
 $images = '';
