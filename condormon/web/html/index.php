@@ -125,7 +125,7 @@ $html .= '        ';
 foreach ($titles as $title => $target) {
   if (!is_array($target))
     continue;
-  foreach ($target as $subtitle => $counter) {
+  foreach ($target as $subtitle => $counter)
     $html .= '<th>' . $subtitle . '</th>';
 }
 $html .= "\n";
