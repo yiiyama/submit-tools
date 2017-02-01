@@ -1,8 +1,8 @@
 <?php
 $rrdpath = '/var/run/condormon';
 $title = 'subMIT current job status';
-$rrdcolumns = array('running-t2', 'running-t3', 'running-eaps', 'running-osg', 'running-uscms', 'running-cmsitb', 'idle', 'held');
-$titles = array('MIT' => array('T2_US_MIT' => 'running-t2', 'T3_US_MIT' => 'running-t3', 'EAPS' => 'running-eaps'), 'OSG' => 'running-osg', 'USCMS' => 'running-uscms', 'CMSITB' => 'running-cmsitb');
+$rrdcolumns = array('running-t2', 'running-t3', 'running-eaps', 'running-osg', 'running-cms', 'running-uscms', 'running-cmsitb', 'idle', 'held');
+$titles = array('MIT' => array('T2_US_MIT' => 'running-t2', 'T3_US_MIT' => 'running-t3', 'EAPS' => 'running-eaps'), 'OSG' => 'running-osg', 'CMS' => 'running-cms', 'USCMS' => 'running-uscms', 'CMSITB' => 'running-cmsitb');
 
 function lastEntry($rrd)
 {
