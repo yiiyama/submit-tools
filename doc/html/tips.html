@@ -111,7 +111,7 @@ requirements = ( \
         <h2>Restricting your jobs to MIT T2</h2>
         <p>While you have access to a larger computing pool than MIT T2, some of your jobs may be optimized or designed to be run at MIT T2. To restrict your jobs to only run at MIT, add the following to your requirements.
           <pre>
-requirements = GLIDEIN_Site == "MIT_CampusFactory" && BOSCOCluster == "ce03.cmsaf.mit.edu" && BOSCOGroup == @group@ && HAS_CVMFS_cms_cern_ch
+requirements = GLIDEIN_Site == "MIT_CampusFactory" && BOSCOCluster == "ce03.cmsaf.mit.edu" && BOSCOGroup == "@group@" && HAS_CVMFS_cms_cern_ch
           </pre>
           Where <pre class="inline">@group@</pre> is <pre class="inline">bosco_cms</pre> for MIT CMS HEP collaborators, <pre class="inline">bosco_cmshi</pre> for MIT CMS HIG collaborators, and <pre class="inline">bosco_lns</pre> for other LNS members.</p>
       </article>

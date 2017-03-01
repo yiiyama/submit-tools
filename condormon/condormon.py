@@ -36,8 +36,8 @@ SCHEDD_ADS = None
 
 # RRD config
 
-JOB_COUNTERS = ['running-t2', 'running-t3', 'running-eaps', 'running-osg', 'running-uscms', 'running-cmsitb', 'running-cms', 'idle', 'held']
-COUNTER_TITLES = [('T2_US_MIT', '789e5b'), ('T3_US_MIT', 'deaa39'), ('EAPS', '72c2d6'), ('OSG', 'db773b'), ('USCMS', 'c8493d'), ('CMSITB', '36a7ff'), ('CMS', 'ff9b70'), ('Idle', '2665b0'), ('Held', '9a4299')]
+JOB_COUNTERS = ['running-t2', 'running-t3', 'running-eaps', 'running-osg', 'running-cms', 'idle', 'held']
+COUNTER_TITLES = [('T2_US_MIT', '789e5b'), ('T3_US_MIT', 'deaa39'), ('EAPS', '72c2d6'), ('OSG', 'db773b'), ('CMS', 'c8493d'), ('Idle', '2665b0'), ('Held', '9a4299')]
 ADD_MAX_SLOTS = False
 STARTD_CONSTRAINTS = 'True'
 
@@ -51,10 +51,6 @@ def sortJob(job):
             return 'running-eaps'
         elif job.frontend == 'osg-flock.grid.iu.edu':
             return 'running-osg'
-        elif job.frontend == 'glidein-collector.t2.ucsd.edu':
-            return 'running-uscms'
-        elif job.frontend == 'vocms0807.cern.ch:9618' or job.frontend == 'cmssrv215.fnal.gov:9618':
-            return 'running-cmsitb'
         elif job.frontend == 'vocms032.cern.ch:9620' or job.frontend == 'cmssrv221.fnal.gov:9620':
             return 'running-cms'
 
