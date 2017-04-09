@@ -83,12 +83,15 @@ HAS_CVMFS_cms_cern_ch, HAS_CVMFS_ams_cern_ch, HAS_CVMFS_oasis_opensciencegrid_or
 
       <article id="cmsglobal">
         <h2>CMS Global Pool</h2>
-        <p>This pool is restricted to CMS collaborators only.</p>
-        <p>Classad
+        <p>This pool is restricted to CMS collaborators only. A CERN-issued grid certificate is required to submit jobs that land in the CMS pool.</p>
+        <p>Classads
           <pre>
 +DESIRED_Sites = "(comma-separated list of CMS T2 and T3 sites)"
+use_x509userproxy = True
+x509userproxy = @proxy@
++AccountingGroup = "analysis.@user@"
           </pre>
-          will enable matching to US CMS slots.
+          will enable matching to US CMS slots, where <pre class="inline">@proxy@</pre> is the grid proxy file name and <pre class="inline">@user@</pre> is the user name (which must match the CN of the grid certificate).
         </p>
         <p>The following Classads (and many more) are defined at US CMS:
           <pre>

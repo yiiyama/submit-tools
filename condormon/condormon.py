@@ -51,7 +51,7 @@ def sortJob(job):
             return 'running-eaps'
         elif job.frontend == 'osg-flock.grid.iu.edu':
             return 'running-osg'
-        elif job.frontend == 'vocms032.cern.ch:9620' or job.frontend == 'cmssrv221.fnal.gov:9620':
+        elif job.frontend == 'cmsgwms-collector-global.cern.ch' or job.frontend == 'vocms0808.cern.ch:9620' or job.frontend == 'cmssrv221.fnal.gov:9620':
             return 'running-cms'
 
     elif job.status == 5 or job.status == 6:
