@@ -97,7 +97,7 @@ schedds = []
 if FIND_SCHEDDS:
     for loc in COLLECTOR_LOCATIONS:
         collector = htcondor.Collector(loc)
-        for ad in collector.query(htcondor.AdTypes.Schedd, SCHEDD_CONSTRAINTS, ['ScheddIpAddr']):
+        for ad in collector.query(htcondor.AdTypes.Schedd, SCHEDD_CONSTRAINTS, ['MyAddress']):
             # remote schedd specified by the ClassAd object containing the ip address
             schedds.append(htcondor.Schedd(ad))
 
