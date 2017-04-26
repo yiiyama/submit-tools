@@ -206,6 +206,10 @@ for jobads in all_ads:
         site_pool = remote_node[remote_node.find('.') + 1:]
 
     try:
+        # HACK -- Estonia has too many site_pools
+        if site_name == 'Estonia':
+            site_pool = 'glidein'
+
         site_id = sites[(site_name, site_pool)]
     except KeyError:
         try:
