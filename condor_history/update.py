@@ -77,7 +77,9 @@ while len(open_clusters) != 0:
 
     constraint = classad.ExprTree('||'.join(constraints))
 
-    ## old implementation                                                                                                                                                                                #all_ads.extend(schedd.history(constraint, classad_attrs, -1))
+    ## old implementation
+    #all_ads.extend(schedd.history(constraint, classad_attrs, -1))
+
     ## new implementation and ugly long implementation (python bindings broken)
     action = 'condor_history -constraint \"%s\" -autoformat %s'%("True"," ".join(classad_attrs))
     p = subprocess.Popen(action,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
