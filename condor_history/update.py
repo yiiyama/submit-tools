@@ -41,7 +41,25 @@ frontends = dict(db_query('SELECT `frontend_name`, `frontend_id` FROM `frontends
 # 1. All new clusters
 # 2. All clusters tagged open in the last iteration
 
-classad_attrs = ['GlobalJobId', 'ClusterId', 'ProcId', 'Owner', 'SubMITOwner', 'Cmd', 'MATCH_GLIDEIN_SiteWMS_Queue', 'LastRemoteHost', 'MATCH_GLIDEIN_SiteWMS_Slot', 'BOSCOCluster', 'MATCH_GLIDEIN_Site', 'LastRemotePool', 'LastMatchTime', 'RemoteWallClockTime', 'RemoteUserCpu', 'ExitCode', 'JobStatus']
+classad_attrs = [
+    ('GlobalJobId', str),
+    ('ClusterId', int),
+    ('ProcId', int),
+    ('Owner', str),
+    ('SubMITOwner', str),
+    ('Cmd', str),
+    ('MATCH_GLIDEIN_SiteWMS_Queue', str),
+    ('LastRemoteHost', str),
+    ('MATCH_GLIDEIN_SiteWMS_Slot', str),
+    ('BOSCOCluster', str),
+    ('MATCH_GLIDEIN_Site', str),
+    ('LastRemotePool', str),
+    ('LastMatchTime', int),
+    ('RemoteWallClockTime', float),
+    ('RemoteUserCpu', float),
+    ('ExitCode', int),
+    ('JobStatus', int)
+]
 
 open_clusters = db_query('SELECT `cluster_id` FROM `open_clusters`')
 open_clusters.extend(list(current_open_clusters))
@@ -59,7 +77,7 @@ while len(open_clusters) != 0:
             ranges.append((cluster_id, cluster_id))
 
             # empirically; condor_history fails when the constraint string is too long
-            if len(ranges) == 2000:
+            if len(ranges) == 20:
                 break
         else:
             ranges[-1] = (ranges[-1][0], cluster_id)
@@ -77,44 +95,35 @@ while len(open_clusters) != 0:
 
     constraint = classad.ExprTree('||'.join(constraints))
 
-    ## old implementation
+    ## old implementation (classad_attrs is a simple list of attr names)
     #all_ads.extend(schedd.history(constraint, classad_attrs, -1))
 
     ## new implementation and ugly long implementation (python bindings broken)
-    action = 'condor_history -constraint \"%s\" -autoformat %s'%("True"," ".join(classad_attrs))
-    p = subprocess.Popen(action,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+    p = subprocess.Popen(['condor_history', '-constraint', constraint, '-autoformat'] + [a[0] for a in classad_attrs], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
     (out, err) = p.communicate()
-    rc = p.returncode
 
     results = []
     for line in out.split("\n"):
         values = line.split(" ")
         line_dict = {}                                     # print " Line: %d (Class: %d)"%(len(values),len(classad_attrs))
-        if len(values) == len(classad_attrs):
+        if len(values) != len(classad_attrs):
+            continue
 
-            for k,t,v in zip(classad_attrs,classad_attrs_type,values):
-                try:
-                    if   t == 's':
-                        line_dict[k] = v
-                    elif t == 'd':
-                        line_dict[k] = int(v)
-                    elif t == 'f':
-                        line_dict[k] = float(v)
-                    else:
-                        line_dict[k] = v
-                except:
-                   if k == 'ExitCode' and v == 'undefined':
-                        line_dict[k] = -1
-                    else:
-                        print ' ERROR == Exception: Attribute: %s  Type: %s  Value: %s'%(k,t,v)
-                        print line
+        for (name, typ), value in zip(classad_attrs, values):
+            if name == 'ExitCode' and value == 'undefined':
+                line_dict[name] = -1
+                continue
 
-            results.append(line_dict)
+            try:
+                line_dict[name] = typ(value)
+            except:
+                print ' ERROR == Exception: Attribute: %s  Type: %s  Value: %s' % (name, str(typ), value)
+                print line
+
+        results.append(line_dict)
 
     # add all results to the all_adds array
-    #print " append more RESULTS"
     all_ads.extend(results)
-
 
 
 # Some efficiency measures
