@@ -63,68 +63,82 @@ classad_attrs = [
 
 open_clusters = db_query('SELECT `cluster_id` FROM `open_clusters`')
 open_clusters.extend(list(current_open_clusters))
-open_clusters.sort()
+
+## old implementation using htcondor python binding for schedd
+#open_clusters.sort()
+#all_ads = []
+#while len(open_clusters) != 0:
+#    # ExprTree override of __or__ is buggy; need to concatenate by hand
+#    # Construct a list of (begin, end) tuples
+#    ranges = []
+#    while len(open_clusters) != 0:
+#        cluster_id = open_clusters.pop(0)
+#
+#        if len(ranges) == 0 or cluster_id != ranges[-1][1] + 1:
+#            # This cluster id is disconnected from the previous range (or this is the first entry)
+#            ranges.append((cluster_id, cluster_id))
+#
+#            # empirically; condor_history fails when the constraint string is too long
+#            if len(ranges) == 20:
+#                break
+#        else:
+#            # This cluster id is one next the end of the last entry -> update last entry
+#            ranges[-1] = (ranges[-1][0], cluster_id)
+#
+#    constraints = []
+#    for begin, end in ranges:
+#        if begin == end:
+#            constraints.append('ClusterId == %d' % begin)
+#        else:
+#            constraints.append('(ClusterId >= %d && ClusterId <= %d)' % (begin, end))
+#
+#    # exhausted the list of open clusters; append "everything beyond"
+#    if len(open_clusters) == 0:
+#        constraints.append('ClusterId > %d' % ranges[-1][1])
+#
+#    constraint = classad.ExprTree('||'.join(constraints))
+#
+#    all_ads.extend(schedd.history(constraint, classad_attrs, -1))
+
+## new implementation using system call to condor_history
+## python binding somehow stopped working since version 8.6.
+# The command-line version of condor_history will always iterate through the full history regardless of the constraint passed.
+# Better to fetch everything and sift them here.
+p = subprocess.Popen(['condor_history', '-autoformat'] + [a[0] for a in classad_attrs], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+(out, err) = p.communicate()
+
+# where in the list of returned values does the cluster id appear?
+cluster_id_idx = classad_attrs.index(('ClusterId', int))
+
+# make a set for faster search
+cluster_ids = set(open_clusters)
 
 all_ads = []
+for line in out.split("\n"):
+    values = line.split(" ")
 
-while len(open_clusters) != 0:
-    # ExprTree override of __or__ is buggy; need to concatenate by hand
-    ranges = []
-    while len(open_clusters) != 0:
-        cluster_id = open_clusters.pop(0)
+    if len(values) != len(classad_attrs):
+        # ill-formatted line
+        continue
 
-        if len(ranges) == 0 or cluster_id != ranges[-1][1] + 1:
-            ranges.append((cluster_id, cluster_id))
+    if int(values[cluster_id_idx]) not in cluster_ids:
+        # this is not an open cluster
+        continue
 
-            # empirically; condor_history fails when the constraint string is too long
-            if len(ranges) == 20:
-                break
-        else:
-            ranges[-1] = (ranges[-1][0], cluster_id)
+    line_dict = {}
 
-    constraints = []
-    for begin, end in ranges:
-        if begin == end:
-            constraints.append('ClusterId == %d' % begin)
-        else:
-            constraints.append('(ClusterId >= %d && ClusterId <= %d)' % (begin, end))
-
-    # exhausted the list of open clusters; append "everything beyond"
-    if len(open_clusters) == 0:
-        constraints.append('ClusterId > %d' % ranges[-1][1])
-
-    constraint = classad.ExprTree('||'.join(constraints))
-
-    ## old implementation (classad_attrs is a simple list of attr names)
-    #all_ads.extend(schedd.history(constraint, classad_attrs, -1))
-
-    ## new implementation and ugly long implementation (python bindings broken)
-    p = subprocess.Popen(['condor_history', '-constraint', str(constraint), '-autoformat'] + [a[0] for a in classad_attrs], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-    (out, err) = p.communicate()
-
-    results = []
-    for line in out.split("\n"):
-        values = line.split(" ")
-        line_dict = {}                                     # print " Line: %d (Class: %d)"%(len(values),len(classad_attrs))
-        if len(values) != len(classad_attrs):
+    for (name, typ), value in zip(classad_attrs, values):
+        if name == 'ExitCode' and value == 'undefined':
+            line_dict[name] = -1
             continue
 
-        for (name, typ), value in zip(classad_attrs, values):
-            if name == 'ExitCode' and value == 'undefined':
-                line_dict[name] = -1
-                continue
+        try:
+            line_dict[name] = typ(value)
+        except:
+            print ' ERROR == Exception: Attribute: %s  Type: %s  Value: %s' % (name, str(typ), value)
+            print line
 
-            try:
-                line_dict[name] = typ(value)
-            except:
-                print ' ERROR == Exception: Attribute: %s  Type: %s  Value: %s' % (name, str(typ), value)
-                print line
-
-        results.append(line_dict)
-
-    # add all results to the all_adds array
-    all_ads.extend(results)
-
+    all_ads.append(line_dict)
 
 # Some efficiency measures
 cluster_jobs = dict()
