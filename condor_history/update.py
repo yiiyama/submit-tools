@@ -135,8 +135,8 @@ for line in out.split("\n"):
         try:
             line_dict[name] = typ(value)
         except:
-            print ' ERROR == Exception: Attribute: %s  Type: %s  Value: %s' % (name, str(typ), value)
-            print line
+            logger.error(' ERROR == Exception: Attribute: %s  Type: %s  Value: %s' % (name, str(typ), value))
+            logger.error(line)
 
     all_ads.append(line_dict)
 
