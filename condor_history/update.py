@@ -99,7 +99,7 @@ while len(open_clusters) != 0:
     #all_ads.extend(schedd.history(constraint, classad_attrs, -1))
 
     ## new implementation and ugly long implementation (python bindings broken)
-    p = subprocess.Popen(['condor_history', '-constraint', constraint, '-autoformat'] + [a[0] for a in classad_attrs], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+    p = subprocess.Popen(['condor_history', '-constraint', str(constraint), '-autoformat'] + [a[0] for a in classad_attrs], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
     (out, err) = p.communicate()
 
     results = []
