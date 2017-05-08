@@ -115,9 +115,14 @@ else:
 jobData = []
 
 for schedd in schedds:
-    jobAds = schedd.query('True', ['User', 'ClusterId', 'ProcId', 'GlobalJobId', 'JobStartDate', 'RemoteHost', 'LastRemoteHost', 'RemotePool', 'LastRemotePool', 'JobStatus', 'Cmd', 'Arguments', 'Args', 'MATCH_GLIDEIN_Site', 'BOSCOCluster'])
+    jobAds = schedd.query('True', ['Owner', 'SubMITOwner', 'ClusterId', 'ProcId', 'GlobalJobId', 'JobStartDate', 'RemoteHost', 'LastRemoteHost', 'RemotePool', 'LastRemotePool', 'JobStatus', 'Cmd', 'Arguments', 'Args', 'MATCH_GLIDEIN_Site', 'BOSCOCluster'])
 
     for jobAd in jobAds:
+        try:
+            user = jobAd['SubMITOwner']
+        except KeyError:
+            user = jobAd['Owner']
+
         try:
             startTime = jobAd['JobStartDate']
         except KeyError:
@@ -168,7 +173,7 @@ for schedd in schedds:
 
         jobDatum = JobData(
             schedd = schedd,
-            user = jobAd['User'][:jobAd['User'].find('@')],
+            user = user,
             submitHost = jobAd['GlobalJobId'][:jobAd['GlobalJobId'].find('#')],
             jobId = '%d.%d' % (jobAd['ClusterId'], jobAd['ProcId']),
             startTime = startTime,

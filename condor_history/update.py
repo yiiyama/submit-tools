@@ -41,7 +41,7 @@ frontends = dict(db_query('SELECT `frontend_name`, `frontend_id` FROM `frontends
 # 1. All new clusters
 # 2. All clusters tagged open in the last iteration
 
-classad_attrs = ['GlobalJobId', 'ClusterId', 'ProcId', 'User', 'Cmd', 'MATCH_GLIDEIN_SiteWMS_Queue', 'LastRemoteHost', 'MATCH_GLIDEIN_SiteWMS_Slot', 'BOSCOCluster', 'MATCH_GLIDEIN_Site', 'LastRemotePool', 'LastMatchTime', 'RemoteWallClockTime', 'RemoteUserCpu', 'ExitCode', 'JobStatus']
+classad_attrs = ['GlobalJobId', 'ClusterId', 'ProcId', 'Owner', 'SubMITOwner', 'Cmd', 'MATCH_GLIDEIN_SiteWMS_Queue', 'LastRemoteHost', 'MATCH_GLIDEIN_SiteWMS_Slot', 'BOSCOCluster', 'MATCH_GLIDEIN_Site', 'LastRemotePool', 'LastMatchTime', 'RemoteWallClockTime', 'RemoteUserCpu', 'ExitCode', 'JobStatus']
 
 open_clusters = db_query('SELECT `cluster_id` FROM `open_clusters`')
 open_clusters.extend(list(current_open_clusters))
@@ -140,11 +140,13 @@ for jobads in all_ads:
             # Find user id first
             user = ''
             try:
-                full_user_name = jobads['User']
-                user = full_user_name[:full_user_name.find('@')]
+                user = jobads['SubMITOwner']
             except KeyError:
-                # No User classad found
-                pass
+                try:
+                    user = jobads['Owner']
+                except KeyError:
+                    # No User classad found
+                    pass
 
             if user == '' or user in is_nobody:
                 user_id = 0
