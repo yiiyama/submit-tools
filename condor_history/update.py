@@ -104,8 +104,8 @@ open_clusters.extend(list(current_open_clusters))
 ## python binding somehow stopped working since version 8.6.
 # The command-line version of condor_history will always iterate through the full history regardless of the constraint passed.
 # Better to fetch everything and sift them here.
-p = subprocess.Popen(['condor_history', '-autoformat'] + [a[0] for a in classad_attrs], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-(out, err) = p.communicate()
+proc = subprocess.Popen(['condor_history', '-autoformat'] + [a[0] for a in classad_attrs], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+(out, err) = proc.communicate()
 
 # where in the list of returned values does the cluster id appear?
 cluster_id_idx = classad_attrs.index(('ClusterId', int))
@@ -128,8 +128,11 @@ for line in out.split("\n"):
     line_dict = {}
 
     for (name, typ), value in zip(classad_attrs, values):
-        if name == 'ExitCode' and value == 'undefined':
-            line_dict[name] = -1
+        if value == 'undefined':
+            if name == 'ExitCode':
+                line_dict[name] = -1
+
+            # otherwise we don't fill the dictionary and let KeyErrors be thrown
             continue
 
         try:
@@ -200,6 +203,7 @@ for jobads in all_ads:
             logger.info('Inserting cluster (%d, %s, %s, %s)', cluster_id, user, time.strftime('%Y-%m-%d %H:%M:%S', submit_time), os.path.basename(jobads['Cmd'])[:16])
 
             # Now insert the cluster information
+            print 'inserting', cluster_id
             db_query('INSERT INTO `job_clusters` VALUES (%s, %s, %s, %s, %s)', CONDOR_INSTANCE, cluster_id, user_id, time.strftime('%Y-%m-%d %H:%M:%S', submit_time), os.path.basename(jobads['Cmd'])[:16])
 
         # Fetch the list of proc_ids already recorded
@@ -278,6 +282,7 @@ for jobads in all_ads:
 
     logger.info('Inserting job %d.%d (success: %d)', cluster_id, proc_id, success)
 
+    print 'inserting', cluster_id, proc_id
     db_query('INSERT INTO `jobs` VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
              CONDOR_INSTANCE,
              cluster_id,
