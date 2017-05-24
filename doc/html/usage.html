@@ -6,15 +6,15 @@
     <link href="/css/common.css" rel="stylesheet">
   </head>
   <body>
-    <section id="general">
-      <h1>Using SubMIT</h1>
-      <ul>
-        <li>Only users in LNS <span class="code">mit-submit</span> user group are able to log into the machine. To apply for an account, submit an <a href="http://web.mit.edu/lns/services/compserv/requests/acctappl.html">LNS account application form</a> with a comment specifying that the account should be added to <span class="code">mit-submit</span>.</li>
-        <li>Each user has an AFS home area (/afs/lns.mit.edu/user/<i>user</i>, quota 2 GB) that is managed together with other LNS users and a local work area (/work/<i>user</i>, quota 20 GB). The home area is intended for source code etc. that require backups but are small. /work is *not* backed up (but is on RAID 5, so data is protected against a single disk failure).</li>
-        <li>The machine itself has 40 CPUs and a huge memory, so it will not be a problem to e.g. compile or run short test jobs interactively.</li>
-        <li>An LNS.MIT.EDU kerberos ticket is required to even browse your home area (you will obtain a ticket automatically when you log in). This means that system processes (e.g. condor) may not be able to see files under your home directory. Therefore you will probably need to set up most of your workflows to use an area under /work.</li>
-        <li>Since /work is also not too big, you will have to have an external storage somewhere if your jobs produce large outputs. Transfer of the output files to the storage should be done within your jobs.</li>
-      </ul>
-    </section>
+    <a href="index.html">Up</a> <a href="clusters.html">Next</a>
+    <h1>Using SubMIT</h1>
+
+    <ul>
+      <li>Only users in LNS <span class="code">mit-submit</span> user group are able to log into the machine. To apply for an account, submit an <a href="http://web.mit.edu/lns/services/compserv/requests/acctappl.html">LNS account application form</a> with a comment specifying that the account should be added to <span class="code">mit-submit</span>.</li>
+      <li>Each user has an AFS home area (/afs/lns.mit.edu/user/<i>user</i>, quota 2 GB) that is managed together with other LNS users and a local work area (/work/<i>user</i>, quota 20 GB). The home area is intended for source code etc. that require backups but are small. /work is *not* backed up (but is on RAID 5, so data is protected against a single disk failure).</li>
+      <li>The machine itself has 40 CPUs and a huge memory, so it will not be a problem to e.g. compile or run short test jobs interactively.</li>
+      <li>An LNS.MIT.EDU kerberos ticket is required to even browse your home area (you will obtain a ticket automatically when you log in). This means that system processes (e.g. condor) may not be able to see files under your home directory. Therefore you will probably need to set up most of your workflows to use an area under /work.</li>
+      <li>Since /work is also not too big, you will have to have an external storage somewhere if your jobs produce large outputs. Transfer of the output files to the storage should be done within your jobs.</li>
+    </ul>
   </body>
 </html>

@@ -6,100 +6,100 @@
     <link href="/css/common.css" rel="stylesheet">
   </head>
   <body>
-    <section id="clusters">
-      <h1>Notes on individual clusters</h1>
-      <p>Connected clusters are summarized in this PDF document: <a href="data/submit.pdf">SubMIT system configuration</a></p>
+    <a href="usage.html">Back</a> <a href="index.html">Up</a> <a href="tutorial.html">Next</a>
+    <h1>Notes on individual clusters</h1>
 
-      <article id="local">
-        <h2>Local Testbed</h2>
-        <p>To test that the job can run in a batch environment, SubMIT machine itself runs a condor slot.</p>
-        <p>Jobs with classads
+    <p>Connected clusters are summarized in this PDF document: <a href="data/submit.pdf">SubMIT system configuration</a></p>
+
+    <article id="local">
+      <h2>Local Testbed</h2>
+      <p>To test that the job can run in a batch environment, SubMIT machine itself runs a condor slot.</p>
+      <p>Jobs with classads
 <span class="codeblock">
   requirements = ... && isUndefined(GLIDEIN_Site)
   +Submit_LocalTest = <i>M</i>
 </span>
-           will match this local condor slot, where M is the number of minutes the job should run.
-        </p>
-        <p>The job runs in <span class="code">/var/spool/condor/execute/dir_nnnn</span>. stdout(err) of the job is written to _condor_stdout(err).</p>
-      </article>
+         will match this local condor slot, where M is the number of minutes the job should run.
+      </p>
+      <p>The job runs in <span class="code">/var/spool/condor/execute/dir_nnnn</span>. stdout(err) of the job is written to _condor_stdout(err).</p>
+    </article>
 
-      <article id="mit">
-        <h2>MIT Campus Factory</h2>
-        <p>MIT Campus Factory is a virtual condor pool powered by BOSCO and Glidein technologies. It consists of various on-campus and off-campus MIT resources.</p>
-        <p>We require that users configure the jobs to match designated partitions of the individual clusters by setting the following requirements.
-          <ul>
-            <li>For CMS HEP users
+    <article id="mit">
+      <h2>MIT Campus Factory</h2>
+      <p>MIT Campus Factory is a virtual condor pool powered by BOSCO and Glidein technologies. It consists of various on-campus and off-campus MIT resources.</p>
+      <p>We require that users configure the jobs to match designated partitions of the individual clusters by setting the following requirements.
+        <ul>
+          <li>For CMS HEP users
 <span class="codeblock">
 requirements = ... && ((GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms")) || ...)
 </span>
-            </li>
-            <li>For CMS HI users
+          </li>
+          <li>For CMS HI users
 <span class="codeblock">
 requirements = ... && ((GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cmshi")) || ...)
 </span>
-            </li>
-            <li>For other LNS users
+          </li>
+          <li>For other LNS users
 <span class="codeblock">
 requirements = ... && ((GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "boj" || BOSCOGroup == "bosco_lns") || ...)
 </span>
-            </li>
-          </ul>
-        </p>
-        <p><span class="code">BOSCOCluster</span> classad can be used to restrict jobs to specific subclusters of MIT Campus Factory (<span class="code">BOSCOCluster == "..."</span>). The subclusters reachable from MIT Campus Factory and their BOSCOCluster names are
-          <ul>
-            <li>CMS Tier-2 cluster: <span class="code">ce03.cmsaf.mit.edu</span></li>
-            <li>CMS Tier-3 cluster: <span class="code">t3serv007.mit.edu</span></li>
-            <li>EAPS Engaging HPC: <span class="code">eofe5.mit.edu</span></li>
-          </ul>
-        </p>
-        <p>The following boolean Classads are defined at MIT_CampusFactory:
+          </li>
+        </ul>
+      </p>
+      <p><span class="code">BOSCOCluster</span> classad can be used to restrict jobs to specific subclusters of MIT Campus Factory (<span class="code">BOSCOCluster == "..."</span>). The subclusters reachable from MIT Campus Factory and their BOSCOCluster names are
+        <ul>
+          <li>CMS Tier-2 cluster: <span class="code">ce03.cmsaf.mit.edu</span></li>
+          <li>CMS Tier-3 cluster: <span class="code">t3serv007.mit.edu</span></li>
+          <li>EAPS Engaging HPC: <span class="code">eofe5.mit.edu</span></li>
+        </ul>
+      </p>
+      <p>The following boolean Classads are defined at MIT_CampusFactory:
 <span class="codeblock">
   HAS_CVMFS_cms_cern_ch, HAS_CVMFS_atlas_cern_ch, HAS_CVMFS_lhcb_cern_ch, HAS_CVMFS_alice_cern_ch, HAS_CVMFS_ams_cern_ch, HAS_CVMFS_oasis_opensciencegrid_org, HAS_CVMFS_grid_cern_ch, HAS_CVMFS_cvmfs_cmsaf_mit_edu
 </span>
-        </p>
-        <p>To inhibit running on Campus Factory, set the job requirement to
+      </p>
+      <p>To inhibit running on Campus Factory, set the job requirement to
 <span class="codeblock">
    requirements = ... && (isUndefined(GLIDEIN_Site) || GLIDEIN_Site != "MIT_CampusFactory")
 </span>
-        </p>
-      </article>
-      <article id="osg">
-        <h2>Open Science Grid</h2>
-        <p>To get slots at OSG, you need to register your project to OSG.</p>
-        <p>Classad
+      </p>
+    </article>
+    <article id="osg">
+      <h2>Open Science Grid</h2>
+      <p>To get slots at OSG, you need to register your project to OSG.</p>
+      <p>Classad
 <span class="codeblock">
   +ProjectName = <i>name</i>
 </span>
-           will enable matching to OSG slots. Conversely, jobs will not flock to OSG without this line.
-        </p>
-        <p>The following Classads (and many more) are defined at OSG:
+         will enable matching to OSG slots. Conversely, jobs will not flock to OSG without this line.
+      </p>
+      <p>The following Classads (and many more) are defined at OSG:
 <span class="codeblock">
   HAS_CVMFS_cms_cern_ch, HAS_CVMFS_ams_cern_ch, HAS_CVMFS_oasis_opensciencegrid_org, OSGVO_OS_STRING
 </span>
-          The only confirmed value of OSGVO_OS_STRING is "RHEL 6".
-        </p>
-        <p>OSG is the most heterogeneous pool; there is little baseline guarantee that various commands / services exist at the worker nodes. In other words, jobs must be prepared to fail.</p>
-      </article>
+        The only confirmed value of OSGVO_OS_STRING is "RHEL 6".
+      </p>
+      <p>OSG is the most heterogeneous pool; there is little baseline guarantee that various commands / services exist at the worker nodes. In other words, jobs must be prepared to fail.</p>
+    </article>
 
-      <article id="cmsglobal">
-        <h2>CMS Global Pool</h2>
-        <p>This pool is restricted to CMS collaborators only. A CERN-issued grid certificate is required to submit jobs that land in the CMS pool.</p>
-        <p>Classads
+    <article id="cmsglobal">
+      <h2>CMS Global Pool</h2>
+      <p>This pool is restricted to CMS collaborators only. A CERN-issued grid certificate is required to submit jobs that land in the CMS pool.</p>
+      <p>Classads
 <span class="codeblock">
   +DESIRED_Sites = "(comma-separated list of CMS T2 and T3 sites)"
   use_x509userproxy = True
   x509userproxy = @proxy@
   +AccountingGroup = "analysis.@user@"
 </span>
-          will enable matching to US CMS slots, where <span class="code">@proxy@</span> is the grid proxy file name and <span class="code">@user@</span> is the user name (which must match the CN of the grid certificate).
-        </p>
-        <p>The following Classads (and many more) are defined at US CMS:
+        will enable matching to US CMS slots, where <span class="code">@proxy@</span> is the grid proxy file name and <span class="code">@user@</span> is the user name (which must match the CN of the grid certificate).
+      </p>
+      <p>The following Classads (and many more) are defined at US CMS:
 <span class="codeblock">
   GLIDEIN_REQUIRED_OS
 </span>
-          The only confirmed value of GLIDEIN_REQUIRED_OS is "rhel6".
-        </p>
-      </article>
-    </section>
+        The only confirmed value of GLIDEIN_REQUIRED_OS is "rhel6".
+      </p>
+    </article>
   </body>
 </html>
