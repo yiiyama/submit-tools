@@ -6,11 +6,13 @@
     <link href="/css/common.css" rel="stylesheet">
   </head>
   <body>
+    Below are some tips and guidelines for submitting condor jobs from subMIT.
+
     <h3>Index</h3>
     <ul>
       <li><a href="#general">General notes</a></li>
       <li>
-        <a href="#general">The requirements line</a>
+        <a href="#requirements">The requirements line</a>
         <ul>
           <li><a href="#manual">Examples for writing the requirements by hand</a></li>
         </ul>
@@ -47,9 +49,9 @@
     <section id="requirements">
       <h1>The requirements line</h1>
       <p>The "requirements" line of the job description can be used to restrict the execute nodes to be used. There is a script to generate the requirements string. Use
-        <pre>
-reqgen.py {user}
-        </pre>
+<span class="codeblock">
+  reqgen.py {user}
+</span>
         to print out a user-customized requirements string that can be pasted into a condor job description. There are many options to the script to fine-tune the execution targets. See the help menu (-h option) of the script for details.</p>
       
       <article id="manual">
@@ -58,36 +60,36 @@ reqgen.py {user}
 
         <ul>
           <li>Example 1: Run only on MIT Campus Factory (CMS HEP user)
-            <pre>
+<span class="codeblock">
 requirements = GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms") && HAS_CVMFS_cms_cern_ch
-            </pre>
+</span>
             For other users, "bosco_cms" should be replaced by "bosco_cmshi" (CMS HI) or "bosco_lns" (other LNS). HAS_CVMFS_cms_cern_ch is only necessary if you need CMS CVMFS.
           </li>
           <li>Example 2: Running on a specific MIT resource, e.g. T2_US_MIT
-            <pre>
+<span class="codeblock">
 requirements = GLIDEIN_Site == "MIT_CampusFactory" && BOSCOCluster == "ce03.cmsaf.mit.edu" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms") && HAS_CVMFS_cms_cern_ch
-            </pre>
+</span>
           </li>
           <li>Example 3: Enabling OSG
-            <pre>
+<span class="codeblock">
 +ProjectName = MyProject
 requirements = \
   (OSGVO_OS_STRING == "RHEL 6" && HAS_CVMFS_cms_cern_ch) || \
   (GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms") && HAS_CVMFS_cms_cern_ch)
-            </pre>
+</span>
           </li>
           <li>Example 4: Adding US CMS
-            <pre>
+<span class="codeblock">
 +ProjectName = MyProject
 +DESIRED_Sites = "site1,site2,..."
 requirements = \
   (OSGVO_OS_STRING == "RHEL 6" && HAS_CVMFS_cms_cern_ch) || \
   GLIDEIN_REQUIRED_OS == "rhel6" || \
   (GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms") && HAS_CVMFS_cms_cern_ch)
-            </pre>
+</span>
           </li>
           <li>Example 5: Avoiding certain sites
-            <pre>
+<span class="codeblock">
 +ProjectName = MyProject
 +DESIRED_Sites = "site1,site2,..."
 requirements = ( \
@@ -98,7 +100,7 @@ requirements = ( \
   isUndefined(GLIDEIN_Entry_Name) || \
   !stringListMember(GLIDEIN_Entry_Name, "CMS_T2_US_Nebraska_Red_op,CMS_T2_US_Nebraska_Red_gw1_op,CMS_T2_US_Nebraska_Red_gw2_op,CMS_T3_MX_Cinvestav_proton_work,CMS_T3_US_Omaha_tusker,CMSHTPC_T3_US_Omaha_tusker,Glow_US_Syracuse_condor,Glow_US_Syracuse_condor-ce01,Gluex_US_NUMEP_grid1,HCC_US_BNL_gk01,HCC_US_BNL_gk02,HCC_US_BU_atlas-net2,OSG_US_FIU_HPCOSGCE,OSG_US_Hyak_osg,OSG_US_UConn_gluskap,OSG_US_SMU_mfosgce", ",") \
 )                               
-            </pre>
+</span>
           </li>
         </ul>
       </article>
@@ -110,10 +112,10 @@ requirements = ( \
       <article id="restrict-tier2">
         <h2>Restricting your jobs to MIT T2</h2>
         <p>While you have access to a larger computing pool than MIT T2, some of your jobs may be optimized or designed to be run at MIT T2. To restrict your jobs to only run at MIT, add the following to your requirements.
-          <pre>
-requirements = GLIDEIN_Site == "MIT_CampusFactory" && BOSCOCluster == "ce03.cmsaf.mit.edu" && BOSCOGroup == "@group@" && HAS_CVMFS_cms_cern_ch
-          </pre>
-          Where <pre class="inline">@group@</pre> is <pre class="inline">bosco_cms</pre> for MIT CMS HEP collaborators, <pre class="inline">bosco_cmshi</pre> for MIT CMS HIG collaborators, and <pre class="inline">bosco_lns</pre> for other LNS members.</p>
+          <span class="codeblock">
+  requirements = GLIDEIN_Site == "MIT_CampusFactory" && BOSCOCluster == "ce03.cmsaf.mit.edu" && BOSCOGroup == "@group@" && HAS_CVMFS_cms_cern_ch
+          </span>
+          Where <span class="code">@group@</span> is <span class="code">bosco_cms</span> for MIT CMS HEP collaborators, <span class="code">bosco_cmshi</span> for MIT CMS HIG collaborators, and <span class="code">bosco_lns</span> for other LNS members.</p>
       </article>
 
       <article id="tier2-difference">
@@ -121,7 +123,7 @@ requirements = GLIDEIN_Site == "MIT_CampusFactory" && BOSCOCluster == "ce03.cmsa
         <ul>
           <li>SubMIT does not have a large user local space. Large job output should be copied to T2 /mnt/hadoop via gfal-copy or lcg-cp in the job executable. If you restrict your jobs to run at T2, it is possible to use normal cp and mv, but the commands will be executed by the user of the BOSCOGroup.</li>
           <li>HTCondor at SubMIT cannot access the user home directory (AFS authenticates with kerberos, the system user condor does not have your ticket). All job inputs and scripts should be placed within /work/{user}.</li>
-p        </ul>
+        </ul>
       </article>
 
       <article id="deprecated">
@@ -136,14 +138,14 @@ p        </ul>
         <h2>Copy tools and file permissions</h2>
         <p>Recommended method for writing to T2 storage is lcg-cp or gfal-copy. By reading inputs via CVMFS or xrootd and writing the output with such grid tools, your jobs will be fully unbound and can run on any resource.</p>
         <p>To copy back the job output to T2, use the following lines at the end of your executable script (bash):
-          <pre>
-if which gfal-copy
-then
-  gfal-copy file://$PWD/output_file srm://se01.cmsaf.mit.edu:8443/srm/v2/server?SFN=destination_full_path
-else
-  lcg-cp -v -D srmv2 -b file://$PWD/output_file srm://se01.cmsaf.mit.edu:8443/srm/v2/server?SFN=destination_full_path
-fi
-          </pre>
+          <span class="codeblock">
+  if which gfal-copy
+  then
+    gfal-copy file://$PWD/output_file srm://se01.cmsaf.mit.edu:8443/srm/v2/server?SFN=destination_full_path
+  else
+    lcg-cp -v -D srmv2 -b file://$PWD/output_file srm://se01.cmsaf.mit.edu:8443/srm/v2/server?SFN=destination_full_path
+  fi
+          </span>
           In a highly heterogeneous pool, it is possible that the worker node does not have either of the command installed. In such a case the output is not retrievable; you may want to check the command availability at the very beggining of your script and abort the job immediately if there is no way to get the output back.</p>
         <p>Files written by gfal-copy or lcg-cp will be owned by a "grid user". To delete them, use gfal-rm from SubMIT. This also means that the output directory must have proper permissions. The grid copy tools will create whatever directories that do not exist, as long as allowed by the permission settings.</p>
       </article>
@@ -153,9 +155,9 @@ fi
         <ul>
           <li>/cvmfs/cms.cern.ch is mounted on SubMIT, and therefore most of CMSSW setup should work without additional changes.</li>
           <li>The only difference is in Frontier (i.e. GlobalTag) connection. The node is not part of any CMS site and therefore needs to be manually pointed to a squid proxy:
-	    <pre>
-	      process.GlobalTag.connect = 'frontier://(proxyurl=http://squid.cmsaf.mit.edu:3128)(proxyurl=http://squid1.cmsaf.mit.edu:3128)(proxyurl=http://squid2.cmsaf.mit.edu:3128)(serverurl=http://cmsfrontier.cern.ch:8000/FrontierProd)/CMS_CONDITIONS'
-	    </pre>
+	    <span class="codeblock">
+process.GlobalTag.connect = 'frontier://(proxyurl=http://squid.cmsaf.mit.edu:3128)(proxyurl=http://squid1.cmsaf.mit.edu:3128)(proxyurl=http://squid2.cmsaf.mit.edu:3128)(serverurl=http://cmsfrontier.cern.ch:8000/FrontierProd)/CMS_CONDITIONS'
+	    </span>
 	    This is only necessary when executing cmsRun directly on submit.mit.edu. Be sure to remove the line for the CMSSW configuration that is shipped to the condor pool.
           </li>
         </ul>
@@ -168,9 +170,9 @@ fi
       <article id="jobid">
         <h2>Making jobs identifiable</h2>
         <p>A standard technique to make your jobs identifiable is to pass the ClusterId and ProcessId of the job to the job as command-line arguments. This is done by using the arguments line of the job description:
-          <pre>
-arguments = {other arguments} $(ClusterId) $(ProcessId) {other arguments}
-          </pre>
+          <span class="codeblock">
+  arguments = {other arguments} $(ClusterId) $(ProcessId) {other arguments}
+          </span>
         </p>
       </article>
       
@@ -178,14 +180,14 @@ arguments = {other arguments} $(ClusterId) $(ProcessId) {other arguments}
         <h2>Using condor_chirp for semi-realtime logging</h2>
         <p style="color:red;">Only for test and debugging.</p>
         <p>Condor comes with a command <a href="http://research.cs.wisc.edu/htcondor/manual/current/condor_chirp.html">condor_chirp</a> to allow communication (file read/write and more) between a running job and the submitter. You can use this mechanism to ship the stdout and stderr logs as they are being written by your executable. To do this, add a line in your job description:
-          <pre>
-+WantIOProxy = true
-          </pre>
+          <span class="codeblock">
+  +WantIOProxy = true
+          </span>
           and add lines like below in your executable script whenever you want the job to report back.
-          <pre>
-$(condor_config_val LIBEXEC)/condor_chirp put _condor_stdout _condor_stdout.{some_identifier_string}
-          </pre>
-          Replace stdout with stderr for error output. You can pass the ClusterId and ProcessId to the job as discussed above and use them as the identifier. The files are copied to the directory where condor_submit command was issued, or to <pre class="inline">initialdir</pre> if it is specified in the job description.
+          <span class="codeblock">
+  $(condor_config_val LIBEXEC)/condor_chirp put _condor_stdout _condor_stdout.{some_identifier_string}
+          </span>
+          Replace stdout with stderr for error output. You can pass the ClusterId and ProcessId to the job as discussed above and use them as the identifier. The files are copied to the directory where condor_submit command was issued, or to <span class="code">initialdir</span> if it is specified in the job description.
         </p>
       </article>
     </section>

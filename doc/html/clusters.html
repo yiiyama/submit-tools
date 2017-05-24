@@ -14,13 +14,13 @@
         <h2>Local Testbed</h2>
         <p>To test that the job can run in a batch environment, SubMIT machine itself runs a condor slot.</p>
         <p>Jobs with classads
-          <pre>
-requirements = ... && isUndefined(GLIDEIN_Site)
-+Submit_LocalTest = <i>M</i>
-          </pre>
+<span class="codeblock">
+  requirements = ... && isUndefined(GLIDEIN_Site)
+  +Submit_LocalTest = <i>M</i>
+</span>
            will match this local condor slot, where M is the number of minutes the job should run.
         </p>
-        <p>The job runs in <pre class="inline">/var/spool/condor/execute/dir_nnnn</pre>. stdout(err) of the job is written to _condor_stdout(err).</p>
+        <p>The job runs in <span class="code">/var/spool/condor/execute/dir_nnnn</span>. stdout(err) of the job is written to _condor_stdout(err).</p>
       </article>
 
       <article id="mit">
@@ -29,53 +29,53 @@ requirements = ... && isUndefined(GLIDEIN_Site)
         <p>We require that users configure the jobs to match designated partitions of the individual clusters by setting the following requirements.
           <ul>
             <li>For CMS HEP users
-              <pre>
+<span class="codeblock">
 requirements = ... && ((GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms")) || ...)
-              </pre>
+</span>
             </li>
             <li>For CMS HI users
-              <pre>
+<span class="codeblock">
 requirements = ... && ((GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cmshi")) || ...)
-              </pre>
+</span>
             </li>
             <li>For other LNS users
-              <pre>
+<span class="codeblock">
 requirements = ... && ((GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "boj" || BOSCOGroup == "bosco_lns") || ...)
-              </pre>
+</span>
             </li>
           </ul>
         </p>
-        <p><pre class="inline">BOSCOCluster</pre> classad can be used to restrict jobs to specific subclusters of MIT Campus Factory (<pre class="inline">BOSCOCluster == "..."</pre>). The subclusters reachable from MIT Campus Factory and their BOSCOCluster names are
+        <p><span class="code">BOSCOCluster</span> classad can be used to restrict jobs to specific subclusters of MIT Campus Factory (<span class="code">BOSCOCluster == "..."</span>). The subclusters reachable from MIT Campus Factory and their BOSCOCluster names are
           <ul>
-            <li>CMS Tier-2 cluster: <pre class="inline">ce03.cmsaf.mit.edu</pre></li>
-            <li>CMS Tier-3 cluster: <pre class="inline">t3serv007.mit.edu</pre></li>
-            <li>EAPS Engaging HPC: <pre class="inline">eofe5.mit.edu</pre></li>
+            <li>CMS Tier-2 cluster: <span class="code">ce03.cmsaf.mit.edu</span></li>
+            <li>CMS Tier-3 cluster: <span class="code">t3serv007.mit.edu</span></li>
+            <li>EAPS Engaging HPC: <span class="code">eofe5.mit.edu</span></li>
           </ul>
         </p>
         <p>The following boolean Classads are defined at MIT_CampusFactory:
-          <pre>
-            HAS_CVMFS_cms_cern_ch, HAS_CVMFS_atlas_cern_ch, HAS_CVMFS_lhcb_cern_ch, HAS_CVMFS_alice_cern_ch, HAS_CVMFS_ams_cern_ch, HAS_CVMFS_oasis_opensciencegrid_org, HAS_CVMFS_grid_cern_ch, HAS_CVMFS_cvmfs_cmsaf_mit_edu
-          </pre>
+<span class="codeblock">
+  HAS_CVMFS_cms_cern_ch, HAS_CVMFS_atlas_cern_ch, HAS_CVMFS_lhcb_cern_ch, HAS_CVMFS_alice_cern_ch, HAS_CVMFS_ams_cern_ch, HAS_CVMFS_oasis_opensciencegrid_org, HAS_CVMFS_grid_cern_ch, HAS_CVMFS_cvmfs_cmsaf_mit_edu
+</span>
         </p>
         <p>To inhibit running on Campus Factory, set the job requirement to
-          <pre>
- requirements = ... && (isUndefined(GLIDEIN_Site) || GLIDEIN_Site != "MIT_CampusFactory")
-          </pre>
+<span class="codeblock">
+   requirements = ... && (isUndefined(GLIDEIN_Site) || GLIDEIN_Site != "MIT_CampusFactory")
+</span>
         </p>
       </article>
       <article id="osg">
         <h2>Open Science Grid</h2>
         <p>To get slots at OSG, you need to register your project to OSG.</p>
         <p>Classad
-           <pre>
-+ProjectName = <i>name</i>
-          </pre>
+<span class="codeblock">
+  +ProjectName = <i>name</i>
+</span>
            will enable matching to OSG slots. Conversely, jobs will not flock to OSG without this line.
         </p>
         <p>The following Classads (and many more) are defined at OSG:
-          <pre>
-HAS_CVMFS_cms_cern_ch, HAS_CVMFS_ams_cern_ch, HAS_CVMFS_oasis_opensciencegrid_org, OSGVO_OS_STRING
-          </pre>
+<span class="codeblock">
+  HAS_CVMFS_cms_cern_ch, HAS_CVMFS_ams_cern_ch, HAS_CVMFS_oasis_opensciencegrid_org, OSGVO_OS_STRING
+</span>
           The only confirmed value of OSGVO_OS_STRING is "RHEL 6".
         </p>
         <p>OSG is the most heterogeneous pool; there is little baseline guarantee that various commands / services exist at the worker nodes. In other words, jobs must be prepared to fail.</p>
@@ -85,18 +85,18 @@ HAS_CVMFS_cms_cern_ch, HAS_CVMFS_ams_cern_ch, HAS_CVMFS_oasis_opensciencegrid_or
         <h2>CMS Global Pool</h2>
         <p>This pool is restricted to CMS collaborators only. A CERN-issued grid certificate is required to submit jobs that land in the CMS pool.</p>
         <p>Classads
-          <pre>
-+DESIRED_Sites = "(comma-separated list of CMS T2 and T3 sites)"
-use_x509userproxy = True
-x509userproxy = @proxy@
-+AccountingGroup = "analysis.@user@"
-          </pre>
-          will enable matching to US CMS slots, where <pre class="inline">@proxy@</pre> is the grid proxy file name and <pre class="inline">@user@</pre> is the user name (which must match the CN of the grid certificate).
+<span class="codeblock">
+  +DESIRED_Sites = "(comma-separated list of CMS T2 and T3 sites)"
+  use_x509userproxy = True
+  x509userproxy = @proxy@
+  +AccountingGroup = "analysis.@user@"
+</span>
+          will enable matching to US CMS slots, where <span class="code">@proxy@</span> is the grid proxy file name and <span class="code">@user@</span> is the user name (which must match the CN of the grid certificate).
         </p>
         <p>The following Classads (and many more) are defined at US CMS:
-          <pre>
-GLIDEIN_REQUIRED_OS
-          </pre>
+<span class="codeblock">
+  GLIDEIN_REQUIRED_OS
+</span>
           The only confirmed value of GLIDEIN_REQUIRED_OS is "rhel6".
         </p>
       </article>

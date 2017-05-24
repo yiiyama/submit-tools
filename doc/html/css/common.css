@@ -3,8 +3,18 @@ body {
     color: black;    
 }
 
-pre.inline {
-    display: inline;
+span.code {
+    white-space: pre;
+    font-family: monospace;
+}
+
+span.codeblock {
+    white-space: pre;
+    display: block;
+    margin-top: -14px;
+    margin-bottom: 8px;
+    line-height: 120%;
+    font-family: monospace;
 }
 
 h1 {

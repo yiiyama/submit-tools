@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SubMIT - Using shared libraries</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link href="/css/common.css" rel="stylesheet">
+  </head>
+  <body>
+    <a href="tutorial.html">Back</a> <a href="index.html">Up</a> <a href="tips.html">Next</a>
+    <h1>Using shared libraries</h1>
+
+    <p>
+      It is often the case that the executable requires external libraries at run time. Generally speaking, the environment the jobs run (worker nodes) have no common shared directory with subMIT (except for CVMFS - see below). Here are some options to make shared libraries available to the executable.
+    </p>
+
+    <h3>Index</h3>
+    <ul>
+      <li><a href="#ship">Pack and ship</a></li>
+      <li><a href="#cvmfs">CVMFS</a>
+        <ul>
+          <li><a href="#mit">MIT CVMFS</a></li>
+          <li><a href="#osg">OSG CVMFS</a></li>
+        </ul>
+      </li>
+      <li><a href="#virtualization">Virtualization</a></li>
+    </ul>
+
+    <hr>
+
+    <section id="ship">
+      <h2>Pack and ship</h2>
+      <div>
+        The simplest method is to build your own version of libraries under your /work directory, make a tarball, and ship it together with your job using the <span class="code">transfer_input_file</span> command (see the <a href="tutorial.html">tutorial</a> and the <a href="http://research.cs.wisc.edu/htcondor/manual/v8.6/condor_submit.html#SECTION0012564000000000000000">condor documentation</a> for details). When The executable in this case must be a shell script that unpacks the tarball, sets the right environment variable (e.g. <span class="code">PATH</span> and <span class="code">LD_LIBRARY_PATH</span>), and run the actual program.
+      </div>
+      <p>
+        Note that there is a size limit to the data transferred as input files. At subMIT, the limit is 75MB. If your shared library and data exceeds this limit, you need to rely on some other method documented in this page.
+      </p>
+    </section>
+
+    <section id="cvmfs">
+      <h2>CVMFS</h2>
+      <p>
+        <a href="https://cernvm.cern.ch/portal/filesystem">CVMFS</a> is a read-only shared file system developed at CERN for the exact purpose of distributing libraries and small data to a large number of worker nodes reliably. All worker nodes that subMIT is connected to support CVMFS. Multiple entities provide their own CVMFS repositories, which are mounted by the clients under <span class="code">/cvmfs</span>. Note that CVMFS repositories are mounted on demand, i.e., <span class="code">ls /cvmfs</span> may not return anything until a repository is directly accessed.
+      </p>
+
+      <article id="mit">
+        <h3>MIT CVMFS</h3>
+        <p>
+          MIT CMS Tier-2 maintains a CVMFS repository. SubMIT users can request to make a directory under <span class="code">/work</span> copied into the repository. The files will be visible to <a href="clusters.html#local">MIT Campus Factory</a> worker nodes under <span class="code">/cvmfs/cvmfs.cmsaf.mit.edu</span> and subMIT.
+        </p>
+        <p>
+          Example case: You have requested to have your experiment's group directory <span class="code">/work/{experiment}</span> copied into the repository. You want to have pythia8 binaries in the repository. The steps are:
+          <ol>
+            <li>Download and unpack the pythia8 source code into your work directory <span class="code">/work/{user}/</span>.</li>
+            <li><span class="code">./configure --prefix=/work/{experiment}</span></li>
+            <li>make; make install</li>
+          </ol>
+          The binaries and headers will be installed under <span class="code">/work/{experiment}/bin,lib,include,share</span>. In about an hour, the directory content will be synchronized to CVMFS, and the same files will be available at <span class="code">/cvmfs/cvmfs.cmsaf.mit.edu/submit/local/d01/{experiment}/bin,lib,include,share</span>. The executable programs can then be linked against these files.
+        </p>
+      </article>
+
+      <article id="osg">
+        <h3>OSG CVMFS</h3>
+        <p>
+          Open Science Grid CVMFS repository <span class="code">/cvmfs/oasis.opensciencegrid.org</span> has links to the CVMFS repositories of various particle physics experiments. Many experiments maintain extensive sets of physics libraries in their repositories. We recommend you to search the experiment repositories for common libraries before building your own.
+        </p>
+        <p>
+          Taking the CMS repository (<span class="code">/cvmfs/oasis.opensciencegrid.org/cmssoft/cms</span>, which is a link to <span class="code">/cvmfs/cms.cern.ch</span>) as an example, the shared libraries are maintained under
+<span class="codeblock">
+  /cvmfs/cms.cern.ch/{arch}/external
+</span>
+          where <span class="code">{arch}</span> is the combination of the OS, CPU architecture, and the compiler version. Any of the ones that start with <span class="code">slc6_amd64</span> will work on subMIT. To set up the environment for a software package, do
+<span class="codeblock">
+  source /cvmfs/cms.cern.ch/{arch}/external/{package}/etc/profile.d/init.sh
+</span>
+        </p>
+      </article>
+
+    </section>
+
+    <section id="virtualization">
+      <h2>Virtualization</h2>
+      <p>If you need not only shared libraries but a specific OS environment, subMIT and many worker nodes support <a href="http://singularity.lbl.gov/">Singularity</a> as a virtualization solution. A foreseen use case would be to place a singularity image in MIT CVMFS (as images tend to be larger than the maximum transferrable input size).</p>
+    </section>
+  </body>
+</html>
