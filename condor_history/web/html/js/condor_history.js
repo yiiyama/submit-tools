@@ -23,9 +23,10 @@ var jobSearchKeys = {
     'clusterIds': []
 };
 
-var viewNames = ['siteStats', 'dayByDay', 'timeDistribution', 'jobList'];
+var viewNames = ['siteStats', 'exitCodes', 'dayByDay', 'timeDistribution', 'jobList'];
 var viewData = {
     'siteStats': {'title': 'Jobs by Site', 'jsonData': null, 'xorigin': 20., 'nmapping': null, 'tmapping': null},
+    'exitCodes': {'title': 'Exit codes', 'jsonData': null, 'xorigin': 10., 'jobMap': {}, 'panelHeight': 50., 'topMargin': 0.1, 'bottomMargin': 0.05, 'xmapping': null, 'ymapping': null},
     'dayByDay': {'title': 'History', 'jsonData': null, 'xorigin': 10., 'jobMap': [], 'xmapping': null, 'ymapping': null, 'panelHeight': 20., 'topMargin': 0.1, 'bottomMargin': 0.1},
     'timeDistribution': {'title': 'CPU and Wall Time Distribution', 'jsonData': null, 'xorigin': 5., 'panelHeight': 50., 'topMargin': 0.1, 'bottomMargin': 0.05, 'xmapping': null},
     'jobList': {'title': 'Table', 'jsonData': null}
@@ -507,6 +508,19 @@ function setupView(id)
 
         canvas.append('g').classed('graphArea', true);
     }
+    else if (id == 'exitCodes') {
+        var canvas = d3.select('#exitCodes div.viewBody')
+            .append('svg');
+
+        canvas.style('width', '100%');
+
+        canvas.append('g').classed('legendArea', true)
+            .append('g').classed('legend', true)
+            .attr('transform', 'translate(' + viewData.exitCodes.xorigin + ',1)')
+            .append('text').classed('legendTitle', true);
+
+        canvas.append('g').classed('graphArea', true);
+    }
     else if (id == 'dayByDay') {
         var canvas = d3.select('#dayByDay div.viewBody')
             .append('svg');
@@ -738,6 +752,91 @@ function attachData(id)
         graphArea.selectAll('text.barKey')
             .attr('font-size', 0.6);
     }
+    else if (target.exitCodes) {
+        var canvas = d3.select('#exitCodes div.viewBody').select('svg');
+
+        var legend = canvas.select('g.legendArea g.legend');
+
+        siteLegend(legend);
+
+        var nLegRows = Math.floor(legend.selectAll('g.legendEntry').size() / sitesPerRow);
+
+        canvas.attr('viewBox', '0 0 100 ' + (viewData.exitCodes.panelHeight + nLegRows * 2 + 5));
+
+        var graphArea = canvas.select('g.graphArea');
+
+        graphArea.attr('transform', 'translate(0,' + (nLegRows * 2 + 5) + ')');
+
+        viewData.exitCodes.jobMap = {}; // {code -> [list of jobs]}
+
+        for (var x in jobs) {
+            var job = jobs[x];
+            var code = job.exitcode;
+            if (!(code in viewData.exitCodes.jobMap))
+                viewData.exitCodes.jobMap[code] = [];
+
+            viewData.exitCodes.jobMap[code].push(job);
+        }
+
+        var maxN = 0;
+        for (var x in viewData.exitCodes.jobMap) {
+            var n = viewData.exitCodes.jobMap[x].length;
+            if (n > maxN)
+                maxN = n;
+        }
+
+        var graphHeight = viewData.exitCodes.panelHeight * (1 - viewData.exitCodes.topMargin - viewData.exitCodes.bottomMargin);
+
+        graphArea.selectAll('g.axis')
+            .remove();
+
+        viewData.exitCodes.ymapping = d3.scale.linear()
+            .domain([0, maxN * 1.05])
+            .range([graphHeight, 0]);
+
+        var yaxis = d3.svg.axis()
+            .scale(viewData.exitCodes.ymapping)
+            .orient('left')
+            .tickSize(0.6, 1);
+
+        var gyaxis = graphArea.append('g').classed('axis yaxis', true)
+            .attr('transform', 'translate(' + viewData.exitCodes.xorigin + ',' + (viewData.exitCodes.panelHeight * viewData.exitCodes.topMargin) + ')')
+            .call(yaxis)
+            .append('text').classed('axisTitle', true)
+            .attr({'font-size': 0.8, 'text-anchor': 'end', 'dx': '-1em'})
+            .text('Number of jobs');
+
+        var sortedCodes = d3.keys(viewData.exitCodes.jobMap);
+        sortedCodes.sort();
+
+        var xmapping = d3.scale.ordinal()
+            .domain(sortedCodes)
+            .rangePoints([0., (100 - viewData.exitCodes.xorigin - 5)], 1.);
+
+        var xaxis = d3.svg.axis()
+            .scale(xmapping)
+            .orient('bottom')
+            .tickValues(xmapping.domain())
+            .tickSize(0.6, 1);
+
+        var gxaxis = graphArea.append('g').classed('axis xaxis', true)
+            .attr('transform', 'translate(' + viewData.exitCodes.xorigin + ',' + (viewData.exitCodes.panelHeight * (1 - viewData.exitCodes.bottomMargin)) + ')')
+            .call(xaxis);
+
+        formatAxes(graphArea);
+
+        var binw = (95 - viewData.exitCodes.xorigin) / (sortedCodes.length + 1); // +1 for padding
+
+        gxaxis.selectAll('g.tick text')
+            .attr({'x': 0., 'y': 1.8, 'dy': 0});
+
+        graphArea.selectAll('g.codeData').remove();
+        var codeData = graphArea.selectAll('g.codeData')
+            .data(sortedCodes)
+            .enter()
+            .append('g').classed('codeData', true)
+            .attr('transform', function (d) { return 'translate(' + (viewData.exitCodes.xorigin + xmapping(d) - 0.5 * binw) + ',' + (viewData.exitCodes.panelHeight * (1 - viewData.exitCodes.bottomMargin)) + ')'; });
+    }
     else if (target.dayByDay) {
         var canvas = d3.select('#dayByDay div.viewBody').select('svg');
 
@@ -757,7 +856,7 @@ function attachData(id)
         var end = d3.time.day.offset(new Date(d3.select('#submitEnd').property('value')), 1);
         var days = d3.time.day.range(begin, end);
 
-        viewData.dayByDay.jobMap = [];
+        viewData.dayByDay.jobMap = []; // [[jobs in day 0], [jobs in day 1], ...]
         for (var x in days)
             viewData.dayByDay.jobMap.push([]);
 
@@ -1066,6 +1165,59 @@ function updateView(id)
 
         graphArea.selectAll('rect.bar')
             .attr('height', 1);
+    }
+    else if (target.exitCodes) {
+        var canvas = d3.select('#exitCodes div.viewBody').select('svg');
+        var graphArea = canvas.select('g.graphArea');
+
+        var codeData = graphArea.selectAll('g.codeData');
+
+        var binw = (95 - viewData.exitCodes.xorigin) / (codeData.size() + 1); // +1 for padding
+        var graphHeight = viewData.exitCodes.panelHeight * (1 - viewData.exitCodes.topMargin - viewData.exitCodes.bottomMargin);
+
+        var sortedSites = d3.keys(sites).sort();
+
+        viewData.exitCodes.jsonData = [];
+
+        codeData.each(function (code, icode) {
+                var njobs = {};
+                for (var s in sites)
+                    njobs[s] = 0;
+
+                for (var x in viewData.exitCodes.jobMap[code]) {
+                    var job = viewData.exitCodes.jobMap[code][x];
+                    if (!job.selected)
+                        continue;
+
+                    njobs[job.site] += 1;
+                }
+
+                var njobsarr = [];
+                for (var x in sortedSites)
+                    njobsarr.push(njobs[sortedSites[x]]);
+
+                var totals = [0];
+                for (var x in njobsarr) {
+                    var prev = totals[x];
+                    totals.push(prev + njobsarr[x]);
+                }
+                totals.shift();
+
+                d3.select(this).selectAll('rect.bar')
+                    .data(njobsarr)
+                    .enter()
+                    .append('rect').classed('bar', true)
+                    .attr('width', binw * 0.9)
+                    .attr('height', function (d) { return (graphHeight - viewData.exitCodes.ymapping(d)); })
+                    .attr('transform', function (d, isite) { return 'translate(' + (binw * 0.05) + ',' + (viewData.exitCodes.ymapping(totals[isite]) - graphHeight) + ')'})
+                    .attr('fill', function (d, isite) { return colors[isite % NCOLORS]; });
+
+                var datum = {'code': code, 'sites': []};
+                for (var x in sortedSites)
+                    datum.sites.push({'name': sites[sortedSites[x]].name, 'njobs': njobsarr[x]});
+
+                viewData.exitCodes.jsonData.push(datum);
+            });
     }
     else if (target.dayByDay) {
         var canvas = d3.select('#dayByDay div.viewBody').select('svg');
@@ -1430,6 +1582,31 @@ function dumpCSV(viewName)
                 var data = site['code'][exitcodes[i]];
                 csv += data['n'] + ',' + data['cputime'] + ',' + data['walltime'] + ',';
             }
+        }
+    }
+    else if (viewName == 'exitCodes') {
+        csv += '"site",';
+        for (var x in viewData.exitCodes.jsonData) {
+            var data = viewData.exitCodes.jsonData[x];
+            csv += '"' + data['code'] + ' njobs"';
+        }
+        csv += '\n';
+
+        var sortedSites = d3.keys(sites).sort();
+        for (var s in sortedSites) {
+            var sid = sortedSites[s];
+            var site = sites[sid];
+            csv += '"' + site.name + '",';
+
+            for (var x in viewData.exitCodes.jsonData) {
+                var data = viewData.exitCodes.jsonData[x];
+                for (var q in data['sites']) {
+                    if (data['sites'][q]['name'] != sites[sid].name)
+                        continue;
+                    csv += data['sites'][q]['njobs'] + ',';
+                }
+            }
+            csv += '\n';
         }
     }
     else if (viewName == 'dayByDay') {
