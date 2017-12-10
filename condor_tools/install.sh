@@ -9,7 +9,11 @@ cp $SRCDIR/libexec/collect_history /usr/local/libexec/
 cp $SRCDIR/data/cms_sites.list /var/spool/condor/
 
 LIBDIR=/usr/lib/python2.6/site-packages/condor_tools
-[ -d $LIBDIR ] || mkdir -p $LIBDIR
+if ! [ -d $LIBDIR ]
+then
+  mkdir -p $LIBDIR
+  touch $LIBDIR/__init__.py
+fi
 
 cp $SRCDIR/lib/history_db.py $LIBDIR/
 cp $SRCDIR/lib/collect_history.py $LIBDIR/
