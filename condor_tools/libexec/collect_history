@@ -17,9 +17,10 @@ import htcondor
 
 import condor_tools.collect_history as ch
 from condor_tools.history_db import HistoryDB
+from condor_tools.submit_pools import postexecute
 
 # Increment this number whenever ClusterId counter is reset
-ch.CONDOR_INSTANCE = 1
+HistoryDB.CONDOR_INSTANCE = 1
 
 schedd = htcondor.Schedd()
 db = HistoryDB()
@@ -58,6 +59,8 @@ for jobads in all_ads:
 
     ch.insert_one_job(jobads, db)
     cluster_jobs[cluster_id].add(proc_id)
+
+    postexecute(jobads, db)
 
 # save currently open clusters
 LOG.info('Exiting cycle with %d open clusters.' % len(clusters_in_queue))

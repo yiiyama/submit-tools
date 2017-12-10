@@ -5,9 +5,9 @@ import subprocess
 
 import classad
 
-LOG = logging.getLogger(__name__)
+from history_db import HistoryDB
 
-CONDOR_INSTANCE = 1
+LOG = logging.getLogger(__name__)
 
 def get_clusters_in_queue(schedd):
    
@@ -41,7 +41,10 @@ def get_history_ads(cluster_ids):
         ('RemoteWallClockTime', float),
         ('RemoteUserCpu', float),
         ('ExitCode', int),
-        ('JobStatus', int)
+        ('JobStatus', int),
+        ('MATCH_GLIDEIN_CMSSite', str),
+        ('Dashboard_TaskId', str),
+        ('Dashboard_Id', int)
     ]
 
     all_ads = []
@@ -137,7 +140,7 @@ def get_cluster_jobs(jobads, db):
 
     cluster_id = jobads['ClusterId']
 
-    if not db.cluster_exists(CONDOR_INSTANCE, cluster_id):
+    if not db.cluster_exists(HistoryDB.CONDOR_INSTANCE, cluster_id):
         # This is a new cluster
 
         # Find the user id first
@@ -164,10 +167,10 @@ def get_cluster_jobs(jobads, db):
         LOG.info('Inserting cluster (%d, %s, %s, %s)', cluster_id, user, time.strftime('%Y-%m-%d %H:%M:%S', submit_time), os.path.basename(jobads['Cmd'])[:16])
 
         # Now insert the cluster information
-        db.query('INSERT INTO `job_clusters` VALUES (%s, %s, %s, %s, %s)', CONDOR_INSTANCE, cluster_id, user_id, time.strftime('%Y-%m-%d %H:%M:%S', submit_time), os.path.basename(jobads['Cmd'])[:16])
+        db.query('INSERT INTO `job_clusters` VALUES (%s, %s, %s, %s, %s)', HistoryDB.CONDOR_INSTANCE, cluster_id, user_id, time.strftime('%Y-%m-%d %H:%M:%S', submit_time), os.path.basename(jobads['Cmd'])[:16])
 
     # Fetch the list of proc_ids already recorded
-    return set(db.query('SELECT `proc_id` FROM `jobs` WHERE (`instance`, `cluster_id`) = (%s, %s)', CONDOR_INSTANCE, cluster_id))
+    return set(db.query('SELECT `proc_id` FROM `jobs` WHERE (`instance`, `cluster_id`) = (%s, %s)', HistoryDB.CONDOR_INSTANCE, cluster_id))
 
 def insert_one_job(jobads, db):
     cluster_id = jobads['ClusterId']
@@ -231,7 +234,7 @@ def insert_one_job(jobads, db):
     sql += ' VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)'
 
     db.query(sql,
-        CONDOR_INSTANCE,
+        HistoryDB.CONDOR_INSTANCE,
         cluster_id,
         proc_id,
         site_id,

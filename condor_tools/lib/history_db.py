@@ -8,6 +8,8 @@ LOG = logging.getLogger(__name__)
 class HistoryDB(object):
     """Interface to condor_history DB"""
 
+    CONDOR_INSTANCE = 1
+
     def __init__(self, params = None):
         if params is None:
             with open('/var/spool/condor/history_db.passwd') as pfile:

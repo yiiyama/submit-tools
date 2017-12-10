@@ -4,7 +4,8 @@ import os
 import sys
 import tempfile
 
-import condor_submit as cs
+import condor_tools.condor_submit as cs
+from condor_tools.submit_pools import presubmit, postsubmit
 
 args = sys.argv[1:]
 
@@ -55,17 +56,20 @@ finally:
 
 for cluster_ad, proc_ads in all_ads:
     # Check for pool-specific constraints
-    if not cs.check_cms_global_pool(cluster_ad, proc_ads):
-        sys.stderr.write('Job description requests access to CMS global pool, but did not meet the requirements.\n')
+    problematic_pool = presubmit(cluster_ad, proc_ads)
+    if problematic_pool:
+        sys.stderr.write('Job description requests access to %s, but did not meet the requirements.\n' % problematic_pool)
         sys.stderr.flush()
         sys.exit(2)
     
     # Let's submit
     try:
-        cs.submit(cluster_ad, proc_ads)
+        result_ads = cs.submit(cluster_ad, proc_ads)
     except:
         sys.stderr.write('\nERROR: Could not submit jobs even though -dry-run succeeded. Something is very wrong.\n')
         sys.stderr.flush()
         sys.exit(-1)
+
+    postsubmit(result_ads)
 
 sys.exit(0)
