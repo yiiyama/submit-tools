@@ -2,5 +2,21 @@
 
 SRCDIR=$(cd $(dirname $0); pwd)
 
-cp $SRCDIR/reqgen.py /usr/local/bin/
-cp $SRCDIR/cms_sites.list /var/spool/condor/
+cp $SRCDIR/bin/reqgen.py /usr/local/bin/
+cp $SRCDIR/bin/condor_submit /usr/local/bin/
+cp $SRCDIR/libexec/collect_history /usr/local/libexec/
+
+cp $SRCDIR/data/cms_sites.list /var/spool/condor/
+
+LIBDIR=/usr/lib/python2.6/site-packages/condor_tools
+[ -d $LIBDIR ] || mkdir -p $LIBDIR
+
+cp $SRCDIR/lib/history_db.py $LIBDIR/
+cp $SRCDIR/lib/collect_history.py $LIBDIR/
+cp $SRCDIR/lib/condor_submit.py $LIBDIR/
+
+[ -e /usr/bin/condor_submit ] && mv /usr/bin/{,.}condor_submit
+
+WEBDIR=/var/www/html/condor_history/
+[ -d $WEBDIR ] || mkdir -p $WEBDIR
+cp -r $SRCDIR/web/html/condor_history/* $WEBDIR

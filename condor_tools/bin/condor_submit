@@ -1,0 +1,71 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import tempfile
+
+import condor_submit as cs
+
+args = sys.argv[1:]
+
+if '-dry-run' in args or '-dump' in args:
+    # If all the user wants is a dry run, just run the original condor_submit
+    rc, out, err = cs.call_executable(args)
+
+    # Write the output to stdout/stderr
+    sys.stdout.write(out)
+    sys.stdout.flush()
+    sys.stderr.write(err)
+    sys.stderr.flush()
+
+    sys.exit(rc)
+
+# Otherwise we are trying to actually submit something
+
+# First dump the submit classads to a temporary file
+classad_file = tempfile.NamedTemporaryFile(delete = False)
+classad_file.close()
+classad_file_name = classad_file.name
+
+try:
+    args.extend(['-dry-run', classad_file_name])
+    
+    rc, _, err = cs.call_executable(args)
+    
+    if rc != 0:
+        raise cs.RCException(rc, err)
+    
+    # Load the ads into classad objects
+    with open(classad_file_name) as classad_file:
+        # list of (cluster_ad, proc_ads)
+        all_ads = cs.parse_classad(classad_file)
+
+except cs.RCException as exc:
+    sys.stderr.write('Error while extracting HTCondor classads:\n\n')
+    rc, err = exc.args
+    sys.stderr.write(err)
+    sys.exit(rc)
+
+except:
+    sys.stderr.write('Error while extracting HTCondor classads:\n\n')
+    sys.exit(-1)
+
+finally:
+    os.remove(classad_file_name)
+
+for cluster_ad, proc_ads in all_ads:
+    # Check for pool-specific constraints
+    if not cs.check_cms_global_pool(cluster_ad, proc_ads):
+        sys.stderr.write('Job description requests access to CMS global pool, but did not meet the requirements.\n')
+        sys.stderr.flush()
+        sys.exit(2)
+    
+    # Let's submit
+    try:
+        cs.submit(cluster_ad, proc_ads)
+    except:
+        sys.stderr.write('\nERROR: Could not submit jobs even though -dry-run succeeded. Something is very wrong.\n')
+        sys.stderr.flush()
+        sys.exit(-1)
+
+sys.exit(0)
