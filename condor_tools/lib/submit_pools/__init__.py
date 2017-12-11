@@ -7,10 +7,10 @@ def presubmit(cluster_ad, proc_ads):
     return ''
 
 def postsubmit(proc_ads):
-    cms_global_pool.report_to_dashboard(proc_ads)
+    cms_global_pool.dashboard_postsubmit(proc_ads)
 
 def postexecute(proc_ad, db):
-    cms_global_pool.report_job_completion(proc_ad, db)
+    cms_global_pool.dashboard_postexecute(proc_ad, db)
 
 __all__ = [
     'presubmit',

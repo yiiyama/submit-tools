@@ -131,8 +131,12 @@ def submit(cluster_ad, proc_ads):
     sys.stdout.write('Submitting job(s)')
     sys.stdout.flush()
 
-    cluster_id = schedd.submitMany(cluster_ad, proc_ads)
+    result_ads = []
+
+    cluster_id = schedd.submitMany(cluster_ad, proc_ads, ad_results = result_ads)
     
     sys.stdout.write('.' * len(proc_ads) + '\n')
     sys.stdout.write('%d job(s) submitted to cluster %d.\n' % (len(proc_ads), cluster_id))
     sys.stdout.flush()
+
+    return result_ads

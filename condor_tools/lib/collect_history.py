@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 import logging
@@ -18,34 +19,41 @@ def get_clusters_in_queue(schedd):
 
     return clusters_in_queue
 
+
 def get_open_clusters(db):
     return set(db.query('SELECT `cluster_id` FROM `open_clusters`'))
+
 
 def get_history_ads(cluster_ids):
     """Return a list of history classads from given cluster ids"""
 
-    classad_attrs = [
-        ('GlobalJobId', str),
-        ('ClusterId', int),
-        ('ProcId', int),
-        ('Owner', str),
-        ('SubMITOwner', str),
-        ('Cmd', str),
-        ('MATCH_GLIDEIN_SiteWMS_Queue', str),
-        ('LastRemoteHost', str),
-        ('MATCH_GLIDEIN_SiteWMS_Slot', str),
-        ('BOSCOCluster', str),
-        ('MATCH_GLIDEIN_Site', str),
-        ('LastRemotePool', str),
-        ('LastMatchTime', int),
-        ('RemoteWallClockTime', float),
-        ('RemoteUserCpu', float),
-        ('ExitCode', int),
-        ('JobStatus', int),
-        ('MATCH_GLIDEIN_CMSSite', str),
-        ('Dashboard_TaskId', str),
-        ('Dashboard_Id', int)
-    ]
+    # some attributes are used in postexecute
+    classad_attrs = {
+        'JobUniverse': int,
+        'GlobalJobId': str,
+        'ClusterId': int,
+        'ProcId': int,
+        'Owner': str,
+        'SubMITOwner': str,
+        'Cmd': str,
+        'MATCH_GLIDEIN_SiteWMS_Queue': str,
+        'LastRemoteHost': str,
+        'MATCH_GLIDEIN_SiteWMS_Slot': str,
+        'BOSCOCluster': str,
+        'MATCH_GLIDEIN_Site': str,
+        'MATCH_GLIDEIN_Gatekeeper': str,
+        'DESIRED_Sites': str,
+        'LastRemotePool': str,
+        'LastMatchTime': int,
+        'EnteredCurrentStatus': int,
+        'RemoteWallClockTime': float,
+        'RemoteUserCpu': float,
+        'ExitCode': int,
+        'JobStatus': int,
+        'MATCH_GLIDEIN_CMSSite': str,
+        'Dashboard_TaskId': str,
+        'Dashboard_Id': int
+    }
 
     all_ads = []
 
@@ -83,14 +91,14 @@ def get_history_ads(cluster_ids):
     #
     #    constraint = classad.ExprTree('||'.join(constraints))
     #
-    #    all_ads.extend(schedd.history(constraint, classad_attrs, -1))
+    #    all_ads.extend(schedd.history(constraint, classad_attrs.keys(), -1))
 
     ## new implementation using system call to condor_history
     ## python binding somehow stopped working since version 8.6.
     ## The command-line version of condor_history will always iterate through the full history
     ## regardless of the constraint passed. Better to fetch everything and sift them here.
     LOG.info('Fetching full condor_history.')
-    proc = subprocess.Popen(['condor_history', '-autoformat'] + [a[0] for a in classad_attrs], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+    proc = subprocess.Popen(['condor_history', '-l', '-attr', ','.join(a for a in classad_attrs.keys())], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
     (out, err) = proc.communicate()
 
     if proc.returncode != 0:
@@ -101,39 +109,71 @@ def get_history_ads(cluster_ids):
         
         sys.exit(proc.returncode)
     
-    # where in the list of returned values does the cluster id appear?
-    cluster_id_idx = classad_attrs.index(('ClusterId', int))
+    max_open_cluster = max(cluster_ids)
+
+    # out is a large string with one attribute per line and an empty line in between jobs
+    # undefined attributes simply don't show up (no lines)
+    lines = out.split('\n')
+    # out ends with \n\n - we do want the second-to-last endline but not the last
+    lines.pop()
+    iline = 0
+
+    job_ad = dict()
+    interesting_job = True
+
+    while iline != len(lines):
+        line = lines[iline].strip()
+        iline += 1
+
+        if not line:
+            # end of job block - last line of out is also empty
+            # ClusterId and ProcId should be in job_ad, but we just check for sanity
+            if interesting_job and 'ClusterId' in job_ad and 'ProcId' in job_ad:
+                # save the job if it is from an open cluster
+                if 'ExitCode' not in job_ad:
+                    job_ad['ExitCode'] = -1
+
+                # ignore other undefined attributes and let downstream scripts handle KeyErrors
     
-    for line in out.split("\n"):
-        values = line.split(" ")
-    
-        if len(values) != len(classad_attrs):
-            # ill-formatted line
+                all_ads.append(job_ad)
+
+            job_ad = dict()
+            interesting_job = True
+            
             continue
-    
-        if int(values[cluster_id_idx]) not in cluster_ids:
-            # this is not an open cluster
+
+        if not interesting_job:
             continue
-    
-        line_dict = dict()
-    
-        for (name, typ), value in zip(classad_attrs, values):
-            if value == 'undefined':
-                if name == 'ExitCode':
-                    line_dict[name] = -1
-    
-                # otherwise we don't fill the dictionary and let KeyErrors be thrown
+
+        attr, _, value = line.partition(' = ')
+
+        if attr == 'ClusterId':
+            cluster_id = int(value)
+
+            if cluster_id not in cluster_ids and cluster_id <= max_open_cluster:
+                # this is not an open cluster - skip to the end of the block
+                interesting_job = False
                 continue
-    
-            try:
-                line_dict[name] = typ(value)
-            except:
-                LOG.error(' ERROR == Exception: Attribute: %s  Type: %s  Value: %s' % (name, str(typ), value))
-                LOG.error(line)
-    
-        all_ads.append(line_dict)
+
+        try:
+            typ = classad_attrs[attr]
+        except KeyError:
+            # shouldn't happen because we ask for only attributes in classad_attrs
+            LOG.error('Unknown attribute found: %s', attr)
+            continue
+
+        if typ is str and value[0] == '"' and value[-1] == '"':
+            # Unquote strings
+            value = value.strip('"')
+
+        try:
+            job_ad[attr] = typ(value)
+        except:
+            LOG.error(' ERROR == Exception: Attribute: %s  Type: %s  Value: %s' % (attr, str(typ), value))
+            LOG.error(line)
 
     return all_ads
+
 
 def get_cluster_jobs(jobads, db):
     """Return a set of proc ids of cluster_id."""
@@ -171,6 +211,7 @@ def get_cluster_jobs(jobads, db):
 
     # Fetch the list of proc_ids already recorded
     return set(db.query('SELECT `proc_id` FROM `jobs` WHERE (`instance`, `cluster_id`) = (%s, %s)', HistoryDB.CONDOR_INSTANCE, cluster_id))
+
 
 def insert_one_job(jobads, db):
     cluster_id = jobads['ClusterId']

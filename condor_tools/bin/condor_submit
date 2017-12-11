@@ -56,9 +56,16 @@ finally:
 
 for cluster_ad, proc_ads in all_ads:
     # Check for pool-specific constraints
-    problematic_pool = presubmit(cluster_ad, proc_ads)
-    if problematic_pool:
-        sys.stderr.write('Job description requests access to %s, but did not meet the requirements.\n' % problematic_pool)
+    try:
+        problematic_pool = presubmit(cluster_ad, proc_ads)
+        if problematic_pool:
+            sys.stderr.write('Job description requests access to %s, but did not meet the requirements.\n' % problematic_pool)
+            sys.stderr.flush()
+            sys.exit(2)
+    except:
+        sys.stderr.write('Exception in pre-submission check:\n')
+        _, v, _ = sys.exc_info()
+        sys.stderr.write(str(v) + '\n')
         sys.stderr.flush()
         sys.exit(2)
     
@@ -70,6 +77,12 @@ for cluster_ad, proc_ads in all_ads:
         sys.stderr.flush()
         sys.exit(-1)
 
-    postsubmit(result_ads)
+    try:
+        postsubmit(result_ads)
+    except:
+        sys.stderr.write('Exception in post-submission processing:\n')
+        _, v, _ = sys.exc_info()
+        sys.stderr.write(str(v) + '\n')
+        sys.stderr.flush()
 
 sys.exit(0)
