@@ -112,6 +112,7 @@ cluster_id_idx = classad_attrs.index(('ClusterId', int))
 
 # make a set for faster search
 cluster_ids = set(open_clusters)
+max_cluster_id = max(open_clusters)
 
 all_ads = []
 for line in out.split("\n"):
@@ -121,7 +122,9 @@ for line in out.split("\n"):
         # ill-formatted line
         continue
 
-    if int(values[cluster_id_idx]) not in cluster_ids:
+    cluster_id = int(values[cluster_id_idx])
+
+    if cluster_id not in cluster_ids and cluster_id <= max_cluster_id:
         # this is not an open cluster
         continue
 
