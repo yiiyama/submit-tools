@@ -78,8 +78,10 @@ requirements = GLIDEIN_Site == "MIT_CampusFactory" && BOSCOCluster == "ce03.cmsa
           <li>Example 3: Enabling OSG
 <span class="codeblock">
 +ProjectName = MyProject
++REQUIRED_OS = "rhel6"
 requirements = \
   (OSGVO_OS_STRING == "RHEL 6" && HAS_CVMFS_cms_cern_ch) || \
+  (HAS_SINGULARITY == true || GLIDEIN_REQUIRED_OS == "rhel6") || \
   (GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms") && HAS_CVMFS_cms_cern_ch)
 </span>
           </li>
@@ -87,9 +89,10 @@ requirements = \
 <span class="codeblock">
 +ProjectName = MyProject
 +DESIRED_Sites = "site1,site2,..."
++REQUIRED_OS = "rhel6"
 requirements = \
   (OSGVO_OS_STRING == "RHEL 6" && HAS_CVMFS_cms_cern_ch) || \
-  GLIDEIN_REQUIRED_OS == "rhel6" || \
+  (HAS_SINGULARITY == true || GLIDEIN_REQUIRED_OS == "rhel6") || \
   (GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms") && HAS_CVMFS_cms_cern_ch)
 </span>
           </li>
@@ -99,7 +102,7 @@ requirements = \
 +DESIRED_Sites = "site1,site2,..."
 requirements = ( \
   (OSGVO_OS_STRING == "RHEL 6" && HAS_CVMFS_cms_cern_ch) || \
-  GLIDEIN_REQUIRED_OS == "rhel6" || \
+  (HAS_SINGULARITY == true || GLIDEIN_REQUIRED_OS == "rhel6") || \
   (GLIDEIN_Site == "MIT_CampusFactory" && (BOSCOGroup == "paus" || BOSCOGroup == "bosco_cms") && HAS_CVMFS_cms_cern_ch) \
 ) && ( \
   isUndefined(GLIDEIN_Entry_Name) || \

@@ -3,6 +3,10 @@
 import os
 import sys
 import tempfile
+import logging
+
+logging.basicConfig(format = '%(asctime)s:%(levelname)s:%(name)s: %(message)s', level = logging.INFO)
+LOG = logging.getLogger()
 
 import condor_tools.condor_submit as cs
 from condor_tools.submit_pools import presubmit, postsubmit

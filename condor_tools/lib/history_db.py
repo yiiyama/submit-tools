@@ -9,13 +9,15 @@ class HistoryDB(object):
     """Interface to condor_history DB"""
 
     CONDOR_INSTANCE = 1
+    DB = 'condor_history'
+    READ_ONLY = False
 
     def __init__(self, params = None):
         if params is None:
             with open('/var/spool/condor/history_db.passwd') as pfile:
                 passwd = pfile.read().strip()
             
-            self.connection_parameters = {'host': 'localhost', 'user': 'condor_write', 'passwd': passwd, 'db': 'condor_history'}
+            self.connection_parameters = {'host': 'localhost', 'user': 'condor_write', 'passwd': passwd, 'db': HistoryDB.DB}
         else:
             self.connection_parameters = dict(params)
 
@@ -27,6 +29,14 @@ class HistoryDB(object):
         self._frontends = None
 
     def query(self, sql, *args):
+        if HistoryDB.READ_ONLY:
+            sql_lower = sql.lower().strip()
+            if sql_lower.startswith('insert') or sql_lower.startswith('delete') or \
+                    sql_lower.startswith('update') or sql_lower.startswith('truncate') or \
+                    sql_lower.startswith('drop'):
+
+                return 0
+
         cursor = self.connection.cursor()
     
         try:

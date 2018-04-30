@@ -7,6 +7,7 @@ import json
 import logging
 import urllib2
 import httplib
+from types import DictType, StringType, ListType
 
 # Local module for access to condor_history DB
 from condor_tools.history_db import HistoryDB
@@ -15,9 +16,10 @@ CRABLIBS = '/cvmfs/cms.cern.ch/crab/CRAB_2_11_1_patch1/python/'
 if CRABLIBS not in sys.path:
     sys.path.insert(0, CRABLIBS)
 
-from DashboardAPI import apmonSend, apmonFree
+from DashboardAPI import getApmonInstance, apmonFree
 
 LOG = logging.getLogger(__name__)
+LOG.setLevel(logging.DEBUG)
 
 # global dictionary for cluster_id -> taskid mapping
 _taskids = dict()
@@ -269,7 +271,7 @@ def report_master_submission(cluster_ad):
         'JSToolVersion': '3.2.1',
         'scheduler': 'condor',
         'GridName': user_fullname,
-        'GridCertificate': cert_dn,
+#        'GridCertificate': cert_dn,
         'ApplicationVersion': 'unknown',
         'taskType': 'analysis',
         'vo': 'cms',
@@ -319,7 +321,7 @@ def report_task_submission(proc_ad, taskid):
         'tool_ui': socket.gethostname(),
         'scheduler': 'condor',
         'GridName': user_fullname,
-        'GridCertificate': cert_dn,
+#        'GridCertificate': cert_dn,
         'ApplicationVersion': 'unknown',
         'taskType': 'analysis',
         'vo': 'cms',
@@ -385,3 +387,19 @@ def report_exit_code(proc_ad, taskid):
         'WCCPU': proc_ad['RemoteWallClockTime'],
         'NEventsProcessed': 0
     })
+
+
+def apmonSend(taskid, jobid, params):
+    # Reimplementation of DashboardAPI.apmonSend with exceptions
+    apm = getApmonInstance()
+    if apm is None:
+        raise RuntimeError('Failed to initialize DashboardAPI.')
+
+    if not isinstance(params, DictType) and not isinstance(params, ListType):
+        params = {'unknown' : '0'}
+    if not isinstance(taskid, StringType):
+        taskid = 'unknown'
+    if not isinstance(jobid, StringType):
+        jobid = 'unknown'
+
+    apm.sendParameters(taskid, jobid, params)

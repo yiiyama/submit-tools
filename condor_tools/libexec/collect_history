@@ -21,6 +21,7 @@ from condor_tools.submit_pools import postexecute
 
 # Increment this number whenever ClusterId counter is reset
 HistoryDB.CONDOR_INSTANCE = 1
+HistoryDB.DB = 'condor_history_debug'
 
 schedd = htcondor.Schedd()
 db = HistoryDB()
